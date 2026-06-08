@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: vendor-procurement-portal-api
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    disk:
+      name: procurement-data
+      mountPath: /opt/render/project/data
+      sizeGB: 1
+    envVars:
+      - key: DB_PATH
+        value: /opt/render/project/data/procurement.db
+      - key: JWT_SECRET
+        generateValue: true
+      - key: NODE_ENV
+        value: production
+      - key: GMAIL_USER
+        sync: false
+      - key: GMAIL_APP_PASSWORD
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
