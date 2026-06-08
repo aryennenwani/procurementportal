@@ -85,7 +85,7 @@ Open `.env` and fill in:
 |---|---|
 | `JWT_SECRET` | Long random string used to sign manager session tokens |
 | `PORT` | API port (defaults to `4000`) |
-| `DB_PATH` | Optional override for the SQLite file location (useful in deployment) |
+| `DB_PATH` | Optional override for the SQLite file location (set automatically in production — see deployment section) |
 | `FRONTEND_URL` | The client origin allowed by CORS (e.g. `http://localhost:5173`) |
 | `GMAIL_USER` | The Gmail address the app will send mail **from** |
 | `GMAIL_APP_PASSWORD` | A 16-character Gmail **App Password** (see below) — *not* your normal Gmail password |
@@ -316,12 +316,42 @@ trustworthy: the data they're built on can't quietly change underneath them.
 
 ---
 
-## 9. Notes for going to production
+## 9. Deploying to production
+
+### Backend (Railway)
+
+1. Go to [railway.app](https://railway.app) → **New Project** → **Deploy from
+   GitHub** and select your repo. Railway detects `railway.toml` and uses
+   Nixpacks to build and run the API automatically.
+2. Add environment variables under **Variables**:
+   ```
+   JWT_SECRET = any long random string
+   NODE_ENV = production
+   GMAIL_USER = your gmail
+   GMAIL_APP_PASSWORD = your app password
+   FRONTEND_URL = your Vercel URL
+   DB_PATH = /data/procurement.db
+   ```
+3. Go to **Settings → Add Volume** and mount it at `/data` — this gives the
+   SQLite file persistent storage across deploys and restarts.
+4. Deploy, then copy your Railway URL — you'll need it as `VITE_API_URL`
+   when you deploy the frontend.
+
+### Frontend (Vercel)
+
+1. Go to [vercel.com](https://vercel.com) → **New Project** → import the same
+   GitHub repo, with `client/` as the root directory.
+2. Add the environment variable `VITE_API_URL` pointing at your Railway
+   backend URL.
+3. Deploy, then copy your Vercel URL back into the backend's `FRONTEND_URL`
+   variable on Railway (for CORS and email links) and redeploy the backend.
+
+### General notes
 
 - Replace the development `JWT_SECRET` in `.env` with a long random secret.
 - Consider moving from SQLite to a managed database if you expect high
   concurrent write volume (the schema and queries are plain SQL and port
   cleanly).
-- Put the API behind HTTPS and lock down CORS to your real client origin.
-- Back up the SQLite file (`server/data/`) regularly — it is your permanent
-  audit and archive record.
+- Railway's mounted volume at `/data` already persists the SQLite file across
+  deploys — back it up regularly anyway, since it is your permanent audit and
+  archive record.
