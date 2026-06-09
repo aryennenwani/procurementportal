@@ -92,10 +92,9 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`[server] Shivtek Spechemi Procurement Portal running on port ${PORT}`);
-  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
-    console.warn('[email]  WARNING: GMAIL_USER / GMAIL_APP_PASSWORD not set — vendor emails will NOT be sent.');
-    console.warn('[email]  Set these env vars in Railway to enable email notifications.');
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('[email]  WARNING: RESEND_API_KEY not set — vendor emails will NOT be sent.');
   } else {
-    console.log(`[email]  Email configured for ${process.env.GMAIL_USER}`);
+    console.log('[email]  Resend email configured.');
   }
 });

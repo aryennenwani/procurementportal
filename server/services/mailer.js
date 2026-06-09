@@ -1,28 +1,16 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const db = require('../db');
 const { recordAudit } = require('../middleware/audit');
 const { toIST } = require('../utils');
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
-let transporter = null;
-function getTransporter() {
-  if (transporter) return transporter;
-  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) return null;
-
-  transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-  });
-  return transporter;
+let resend = null;
+function getResend() {
+  if (resend) return resend;
+  if (!process.env.RESEND_API_KEY) return null;
+  resend = new Resend(process.env.RESEND_API_KEY);
+  return resend;
 }
 
 function layout(bodyHtml, ctaLabel, ctaUrl) {
@@ -46,15 +34,15 @@ function layout(bodyHtml, ctaLabel, ctaUrl) {
 }
 
 async function sendMail({ to, subject, html, context }) {
-  const t = getTransporter();
-  if (!t) {
-    console.warn(`[email] SKIPPED — credentials not configured. Would have sent "${subject}" to ${to}`);
+  const client = getResend();
+  if (!client) {
+    console.warn(`[email] SKIPPED — RESEND_API_KEY not configured. Would have sent "${subject}" to ${to}`);
     recordAudit({
       actionType: 'email_failed',
       performedBy: 'system',
       targetType: context?.targetType || 'email',
       targetId: context?.targetId || null,
-      details: { to, subject, reason: 'GMAIL_USER / GMAIL_APP_PASSWORD not configured' },
+      details: { to, subject, reason: 'RESEND_API_KEY not configured' },
       ip: null,
     });
     return;
@@ -62,12 +50,13 @@ async function sendMail({ to, subject, html, context }) {
 
   console.log(`[email] Sending "${subject}" to ${to} ...`);
   try {
-    await t.sendMail({
-      from: `"Shivtek Spechemi" <${process.env.GMAIL_USER}>`,
-      to,
+    const { error } = await client.emails.send({
+      from: 'Shivtek Spechemi <onboarding@resend.dev>',
+      to: [to],
       subject,
       html,
     });
+    if (error) throw new Error(error.message);
     console.log(`[email] Sent OK → ${to}`);
   } catch (err) {
     console.error(`[email] FAILED → ${to} | ${err.message}`);
