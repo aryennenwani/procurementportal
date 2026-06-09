@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns');
 const db = require('../db');
 const { recordAudit } = require('../middleware/audit');
 const { toIST } = require('../utils');
@@ -14,7 +15,6 @@ function getTransporter() {
     host: 'smtp.gmail.com',
     port: 465,
     secure: true,
-    family: 4,
     auth: {
       user: process.env.GMAIL_USER,
       pass: process.env.GMAIL_APP_PASSWORD,
@@ -22,6 +22,8 @@ function getTransporter() {
     connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 15000,
+    lookup: (hostname, options, callback) =>
+      dns.lookup(hostname, { ...options, family: 4 }, callback),
   });
   return transporter;
 }
