@@ -44,7 +44,7 @@ function AssignVendorsModal({ requirementId, assignedIds, onClose, onAssigned })
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[85vh] overflow-y-auto">
         <div className="px-6 py-4 border-b border-gray-100 sticky top-0 bg-white">
-          <h2 className="font-semibold text-[#1C1C1E] text-lg">Assign vendors</h2>
+          <h2 className="font-semibold text-[#1E2B4A] text-lg">Assign vendors</h2>
           <p className="text-sm text-gray-500 mt-0.5">Select one or more vendors to invite for this requirement.</p>
         </div>
         <div className="p-6 space-y-2">
@@ -54,15 +54,15 @@ function AssignVendorsModal({ requirementId, assignedIds, onClose, onAssigned })
             <p className="text-sm text-gray-500 text-center py-6">All vendors are already assigned to this requirement.</p>
           ) : (
             available.map((v) => (
-              <label key={v.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-[#B8962E]/50 cursor-pointer transition-colors">
+              <label key={v.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-[#1A56D6]/50 cursor-pointer transition-colors">
                 <input
                   type="checkbox"
                   checked={selected.includes(v.id)}
                   onChange={() => toggle(v.id)}
-                  className="w-4 h-4 accent-[#B8962E]"
+                  className="w-4 h-4 accent-[#1A56D6]"
                 />
                 <div className="min-w-0">
-                  <p className="font-medium text-[#1C1C1E] text-sm truncate">{v.company_name}</p>
+                  <p className="font-medium text-[#1E2B4A] text-sm truncate">{v.company_name}</p>
                   <p className="text-xs text-gray-500 truncate">{v.category} • {v.contact_person}</p>
                 </div>
               </label>
@@ -116,7 +116,7 @@ function OutcomeModal({ quotation, requirementTitle, lowestQuotation, totalQuota
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md">
         <div className="px-6 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-[#1C1C1E] text-lg">Record outcome — {quotation.company_name}</h2>
+          <h2 className="font-semibold text-[#1E2B4A] text-lg">Record outcome — {quotation.company_name}</h2>
           <p className="text-sm text-gray-500 mt-0.5">For: {requirementTitle}</p>
         </div>
         <div className="p-6 space-y-4">
@@ -140,13 +140,13 @@ function OutcomeModal({ quotation, requirementTitle, lowestQuotation, totalQuota
           </div>
           {outcome === 'not_selected' && (
             <label className="block text-sm">
-              <span className="block mb-1.5 font-medium text-[#1C1C1E]">Reason for rejection (optional)</span>
+              <span className="block mb-1.5 font-medium text-[#1E2B4A]">Reason for rejection (optional)</span>
               <textarea
                 rows={3}
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="e.g. Higher price than competitive bids, longer lead time…"
-                className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#B8962E]/40 focus:border-[#B8962E] text-[#1C1C1E]"
+                className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#1A56D6]/40 focus:border-[#1A56D6] text-[#1E2B4A]"
               />
             </label>
           )}
@@ -172,13 +172,13 @@ function OutcomeModal({ quotation, requirementTitle, lowestQuotation, totalQuota
                 </p>
               </div>
               <label className="block text-sm">
-                <span className="block mb-1.5 font-medium text-[#1C1C1E]">Written justification (required)</span>
+                <span className="block mb-1.5 font-medium text-[#1E2B4A]">Written justification (required)</span>
                 <textarea
                   rows={4}
                   value={justification}
                   onChange={(e) => setJustification(e.target.value)}
                   placeholder="Explain in detail why this vendor was selected over the lower bid (e.g. quality concerns, delivery reliability, prior performance issues with the cheaper vendor)…"
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-red-300 focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-400 text-[#1C1C1E]"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-red-300 focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-400 text-[#1E2B4A]"
                 />
                 <span className={`block mt-1 text-xs ${justificationOk ? 'text-emerald-600' : 'text-red-500'}`}>
                   {justification.trim().length}/{MIN_JUSTIFICATION_LENGTH} characters minimum
@@ -215,7 +215,7 @@ function RevisionHistoryRow({ quotation, colSpan }) {
       <td colSpan={colSpan} className="px-4 pb-3.5 pt-0">
         <button
           onClick={() => setOpen((o) => !o)}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-[#1C1C1E] transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-[#1E2B4A] transition-colors"
         >
           <History size={13} />
           Revision history ({quotation.revision_history.length})
@@ -229,13 +229,13 @@ function RevisionHistoryRow({ quotation, colSpan }) {
               return (
                 <div key={rev.id} className="flex items-center justify-between px-3.5 py-2.5 text-sm">
                   <div>
-                    <span className="font-medium text-[#1C1C1E]">
+                    <span className="font-medium text-[#1E2B4A]">
                       {rev.revision_number === 0 ? 'Original submission' : `Revision ${rev.revision_number}`}
                     </span>
                     <p className="text-xs text-gray-400 mt-0.5">{rev.submitted_at_ist}</p>
                   </div>
                   <div className="text-right">
-                    <span className="font-medium text-[#1C1C1E]">₹{rev.per_unit_price.toLocaleString('en-IN')}</span>
+                    <span className="font-medium text-[#1E2B4A]">₹{rev.per_unit_price.toLocaleString('en-IN')}</span>
                     {diff !== null && diff !== 0 && (
                       <span className={`block text-[10px] font-semibold uppercase tracking-wide ${diff < 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                         {diff < 0 ? '▼' : '▲'} ₹{Math.abs(diff).toLocaleString('en-IN')} vs previous
@@ -308,30 +308,30 @@ export default function RequirementDetail() {
   if (loading) return <PageLoader />;
   if (!data) return null;
 
-  const { requirement, assigned_vendors, quotations, partiality } = data;
+  const { requirement, assigned_vendors, quotations, bids_hidden, partiality } = data;
   const assignedIds = assigned_vendors.map((v) => v.id);
 
   return (
     <div className="space-y-6">
-      <Link to="/dashboard/requirements" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#1C1C1E]">
+      <Link to="/dashboard/requirements" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#1E2B4A]">
         <ArrowLeft size={15} /> Back to requirements
       </Link>
 
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl font-semibold text-[#1C1C1E]">{requirement.title}</h1>
+            <h1 className="text-2xl font-semibold text-[#1E2B4A]">{requirement.title}</h1>
             <StatusBadge status={requirement.status} />
             {partiality.risk_level !== 'LOW' && <RiskBadge level={partiality.risk_level} />}
           </div>
           <p className="text-sm text-gray-500 mt-1.5 max-w-2xl">{requirement.description || 'No description provided.'}</p>
           <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-gray-500 mt-3">
-            <span><strong className="text-[#1C1C1E] font-medium">Quantity:</strong> {requirement.quantity} {requirement.unit}</span>
-            {requirement.grade && <span><strong className="text-[#1C1C1E] font-medium">Grade:</strong> {requirement.grade}</span>}
-            <span><strong className="text-[#1C1C1E] font-medium">Deadline:</strong> {requirement.deadline_ist}</span>
-            <span><strong className="text-[#1C1C1E] font-medium">Created:</strong> {requirement.created_at_ist}</span>
+            <span><strong className="text-[#1E2B4A] font-medium">Quantity:</strong> {requirement.quantity} {requirement.unit}</span>
+            {requirement.grade && <span><strong className="text-[#1E2B4A] font-medium">Grade:</strong> {requirement.grade}</span>}
+            <span><strong className="text-[#1E2B4A] font-medium">Deadline:</strong> {requirement.deadline_ist}</span>
+            <span><strong className="text-[#1E2B4A] font-medium">Created:</strong> {requirement.created_at_ist}</span>
           </div>
-          {requirement.notes && <p className="text-sm text-gray-500 mt-2"><strong className="text-[#1C1C1E] font-medium">Notes:</strong> {requirement.notes}</p>}
+          {requirement.notes && <p className="text-sm text-gray-500 mt-2"><strong className="text-[#1E2B4A] font-medium">Notes:</strong> {requirement.notes}</p>}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2 shrink-0">
@@ -363,7 +363,7 @@ export default function RequirementDetail() {
 
       {partiality.flags.some((f) => f.risk_level !== 'HIGH') && (
         <Card className="p-5">
-          <p className="font-medium text-[#1C1C1E] text-sm mb-3 flex items-center gap-2">
+          <p className="font-medium text-[#1E2B4A] text-sm mb-3 flex items-center gap-2">
             <AlertTriangle size={16} className="text-amber-500" /> Other detection signals
           </p>
           <div className="space-y-2">
@@ -379,7 +379,7 @@ export default function RequirementDetail() {
 
       <Card className="p-5">
         <div className="flex items-center justify-between mb-3">
-          <p className="font-medium text-[#1C1C1E] text-sm flex items-center gap-2">
+          <p className="font-medium text-[#1E2B4A] text-sm flex items-center gap-2">
             <Users size={16} className="text-gray-400" /> Assigned vendors ({assigned_vendors.length})
           </p>
           <Button variant="outline" onClick={() => setShowAssign(true)} className="!py-1.5 !px-3 text-xs">
@@ -395,8 +395,17 @@ export default function RequirementDetail() {
       </Card>
 
       <div>
-        <h2 className="font-semibold text-[#1C1C1E] mb-3">Quotations received ({quotations.length})</h2>
-        {quotations.length === 1 && (
+        <h2 className="font-semibold text-[#1E2B4A] mb-3">Quotations received ({quotations.length})</h2>
+        {bids_hidden && quotations.length > 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-3 flex items-start gap-2.5">
+            <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-700">
+              <strong>Bid amounts are hidden.</strong> Prices will be revealed once at least 2 quotations have been received.
+              This ensures fair and unbiased competitive bidding.
+            </p>
+          </div>
+        )}
+        {!bids_hidden && quotations.length === 1 && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-3 flex items-start gap-2.5">
             <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
             <p className="text-sm text-amber-700">At least 2 quotations must be received before a winner can be selected for this requirement.</p>
@@ -432,9 +441,9 @@ export default function RequirementDetail() {
                   <tr className={q.is_lowest ? 'bg-emerald-50/60' : ''}>
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2">
-                        <p className="font-medium text-[#1C1C1E]">{q.company_name}</p>
+                        <p className="font-medium text-[#1E2B4A]">{q.company_name}</p>
                         {q.revision_number > 0 && (
-                          <span className="text-[10px] font-semibold uppercase tracking-wide text-[#B8962E] bg-[#B8962E]/10 px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-[#1A56D6] bg-[#1A56D6]/10 px-1.5 py-0.5 rounded">
                             Revised ×{q.revision_number}
                           </span>
                         )}
@@ -442,12 +451,20 @@ export default function RequirementDetail() {
                       <p className="text-xs text-gray-500">{q.contact_person}</p>
                     </td>
                     <td className="px-4 py-3.5 text-right">
-                      <span className={`font-semibold ${q.is_lowest ? 'text-emerald-700' : 'text-[#1C1C1E]'}`}>
-                        ₹{q.per_unit_price.toLocaleString('en-IN')}
-                      </span>
-                      {q.is_lowest && <span className="block text-[10px] font-semibold text-emerald-700 uppercase tracking-wide">Lowest quote</span>}
+                      {q.per_unit_price !== null ? (
+                        <>
+                          <span className={`font-semibold ${q.is_lowest ? 'text-emerald-700' : 'text-[#1E2B4A]'}`}>
+                            ₹{q.per_unit_price.toLocaleString('en-IN')}
+                          </span>
+                          {q.is_lowest && <span className="block text-[10px] font-semibold text-emerald-700 uppercase tracking-wide">Lowest quote</span>}
+                        </>
+                      ) : (
+                        <span className="text-gray-400 italic text-xs">Hidden</span>
+                      )}
                     </td>
-                    <td className="px-4 py-3.5 text-right text-[#1C1C1E]">₹{q.total_value.toLocaleString('en-IN')}</td>
+                    <td className="px-4 py-3.5 text-right text-[#1E2B4A]">
+                      {q.total_value !== null ? `₹${q.total_value.toLocaleString('en-IN')}` : <span className="text-gray-400 italic text-xs">Hidden</span>}
+                    </td>
                     <td className="px-4 py-3.5 text-right text-gray-600">{q.lead_time_days} days</td>
                     <td className="px-4 py-3.5 text-gray-600">{q.validity_period}</td>
                     <td className="px-4 py-3.5 text-gray-600">{q.payment_terms}</td>

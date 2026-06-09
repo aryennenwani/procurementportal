@@ -62,7 +62,7 @@ export default function NotificationBell() {
     <div className="relative" ref={ref}>
       <button
         onClick={onOpen}
-        className="relative p-2 rounded-lg text-gray-500 hover:text-[#1C1C1E] hover:bg-gray-100 transition-colors"
+        className="relative p-2 rounded-lg text-gray-500 hover:text-[#1E2B4A] hover:bg-gray-100 transition-colors"
         aria-label="Notifications"
       >
         <Bell size={19} />
@@ -76,9 +76,9 @@ export default function NotificationBell() {
       {open && (
         <div className="absolute right-0 mt-2 w-80 max-h-[28rem] overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-lg z-50">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <p className="font-semibold text-[#1C1C1E] text-sm">Notifications</p>
+            <p className="font-semibold text-[#1E2B4A] text-sm">Notifications</p>
             {unreadCount > 0 && (
-              <button onClick={markAllRead} className="text-xs font-medium text-[#B8962E] hover:text-[#8f7322]">
+              <button onClick={markAllRead} className="text-xs font-medium text-[#1A56D6] hover:text-[#1245B0]">
                 Mark all as read
               </button>
             )}
@@ -91,12 +91,12 @@ export default function NotificationBell() {
                 const content = (
                   <div
                     onClick={() => markRead(n)}
-                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${n.read ? 'bg-white' : 'bg-[#B8962E]/5'} hover:bg-gray-50`}
+                    className={`px-4 py-3 text-sm cursor-pointer transition-colors ${n.read ? 'bg-white' : 'bg-[#1A56D6]/5'} hover:bg-gray-50`}
                   >
                     <div className="flex items-start gap-2">
-                      {!n.read && <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#B8962E] shrink-0" />}
+                      {!n.read && <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#1A56D6] shrink-0" />}
                       <div className="min-w-0">
-                        <p className={`text-[#1C1C1E] ${n.read ? '' : 'font-medium'}`}>{n.title}</p>
+                        <p className={`text-[#1E2B4A] ${n.read ? '' : 'font-medium'}`}>{n.title}</p>
                         <p className="text-gray-500 text-xs mt-0.5">{n.body}</p>
                         <p className="text-gray-400 text-[11px] mt-1">{n.created_at_ist}</p>
                       </div>

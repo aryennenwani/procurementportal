@@ -12,11 +12,18 @@ function requireAuth(req, res, next) {
 
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    req.manager = { id: payload.id, email: payload.email, name: payload.name };
+    req.manager = { id: payload.id, email: payload.email, name: payload.name, is_admin: payload.is_admin || 0 };
     next();
   } catch (err) {
     return res.status(401).json({ error: 'Invalid or expired session. Please log in again.' });
   }
 }
 
-module.exports = { requireAuth, JWT_SECRET };
+function requireAdmin(req, res, next) {
+  if (!req.manager?.is_admin) {
+    return res.status(403).json({ error: 'Admin access required.' });
+  }
+  next();
+}
+
+module.exports = { requireAuth, requireAdmin, JWT_SECRET };

@@ -12,6 +12,7 @@ import Vendors from './pages/manager/Vendors';
 import Archive from './pages/manager/Archive';
 import Compliance from './pages/manager/Compliance';
 import AuditLog from './pages/manager/AuditLog';
+import ManagersList from './pages/manager/ManagersList';
 import VendorPortal from './pages/vendor/VendorPortal';
 
 export default function App() {
@@ -39,6 +40,7 @@ export default function App() {
               <Route path="archive" element={<Archive />} />
               <Route path="compliance" element={<Compliance />} />
               <Route path="audit-log" element={<AuditLog />} />
+              <Route path="managers" element={<ManagersList />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -24,14 +24,14 @@ export default function ConfirmationScreen({ submission, onBack }) {
       <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
         <CheckCircle2 className="text-emerald-600" size={28} />
       </div>
-      <h2 className="text-lg font-semibold text-[#1C1C1E]">{heading}</h2>
+      <h2 className="text-lg font-semibold text-[#1E2B4A]">{heading}</h2>
       <p className="text-sm text-gray-500 mt-1.5 max-w-md mx-auto">{message}</p>
 
       <div className="mt-6 text-left rounded-xl border border-gray-200 divide-y divide-gray-100 overflow-hidden">
         {rows.map(([label, value]) => (
           <div key={label} className="flex justify-between gap-4 px-5 py-3 text-sm">
             <span className="text-gray-500">{label}</span>
-            <span className="font-medium text-[#1C1C1E] text-right">{value}</span>
+            <span className="font-medium text-[#1E2B4A] text-right">{value}</span>
           </div>
         ))}
       </div>

@@ -164,5 +164,13 @@ function ensureColumn(table, column, definition) {
 }
 ensureColumn('quotation_outcomes', 'justification', 'TEXT');
 ensureColumn('partiality_flags', 'metric_value', 'REAL');
+ensureColumn('managers', 'is_admin', 'INTEGER NOT NULL DEFAULT 0');
+
+// On first migration, promote the earliest manager to admin so there is always one.
+const adminCount = db.prepare('SELECT COUNT(*) AS cnt FROM managers WHERE is_admin = 1').get().cnt;
+if (adminCount === 0) {
+  const first = db.prepare('SELECT id FROM managers ORDER BY id ASC LIMIT 1').get();
+  if (first) db.prepare('UPDATE managers SET is_admin = 1 WHERE id = ?').run(first.id);
+}
 
 module.exports = db;

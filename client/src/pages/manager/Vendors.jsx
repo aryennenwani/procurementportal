@@ -39,7 +39,7 @@ function CreateVendorModal({ onClose, onCreated }) {
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white">
-          <h2 className="font-semibold text-[#1C1C1E] text-lg">Add a vendor</h2>
+          <h2 className="font-semibold text-[#1E2B4A] text-lg">Add a vendor</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
         </div>
         <form onSubmit={onSubmit} className="p-6 space-y-4">
@@ -75,7 +75,7 @@ function ActivityModal({ vendor, onClose }) {
       <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white">
           <div>
-            <h2 className="font-semibold text-[#1C1C1E] text-lg">Activity log — {vendor.company_name}</h2>
+            <h2 className="font-semibold text-[#1E2B4A] text-lg">Activity log — {vendor.company_name}</h2>
             <p className="text-sm text-gray-500">Every link open and submission, timestamped.</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
@@ -87,9 +87,9 @@ function ActivityModal({ vendor, onClose }) {
             <ul className="space-y-3">
               {activity.map((a) => (
                 <li key={a.id} className="flex items-start gap-3 text-sm">
-                  <div className="w-2 h-2 rounded-full bg-[#B8962E] mt-1.5 shrink-0" />
+                  <div className="w-2 h-2 rounded-full bg-[#1A56D6] mt-1.5 shrink-0" />
                   <div>
-                    <p className="text-[#1C1C1E] font-medium">{ACTION_LABELS[a.action] || a.action}{a.requirement_title ? ` — ${a.requirement_title}` : ''}</p>
+                    <p className="text-[#1E2B4A] font-medium">{ACTION_LABELS[a.action] || a.action}{a.requirement_title ? ` — ${a.requirement_title}` : ''}</p>
                     <p className="text-xs text-gray-400">{a.timestamp_ist} • IP {a.ip_address}</p>
                   </div>
                 </li>
@@ -128,7 +128,7 @@ export default function Vendors() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-[#1C1C1E]">Vendors</h1>
+          <h1 className="text-2xl font-semibold text-[#1E2B4A]">Vendors</h1>
           <p className="text-sm text-gray-500 mt-1">Manage vendors and their unique portal links.</p>
         </div>
         <Button variant="gold" onClick={() => setShowModal(true)}>
@@ -148,10 +148,10 @@ export default function Vendors() {
             <Card key={v.id} className="p-5">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <h3 className="font-semibold text-[#1C1C1E] truncate">{v.company_name}</h3>
+                  <h3 className="font-semibold text-[#1E2B4A] truncate">{v.company_name}</h3>
                   <p className="text-xs text-gray-500 mt-0.5">{v.category}</p>
                 </div>
-                <span className="shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#B8962E]/10 text-[#B8962E]">
+                <span className="shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#1A56D6]/10 text-[#1A56D6]">
                   {v.win_rate}% win rate
                 </span>
               </div>
@@ -169,7 +169,7 @@ export default function Vendors() {
                   <CopyButton text={`${portalOrigin}${v.portal_url}`} label="Copy link" />
                   <button
                     onClick={() => setActivityFor(v)}
-                    className="text-gray-400 hover:text-[#1C1C1E] transition-colors"
+                    className="text-gray-400 hover:text-[#1E2B4A] transition-colors"
                     title="View activity log"
                   >
                     <History size={16} />

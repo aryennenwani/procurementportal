@@ -4,7 +4,7 @@ const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { recordAudit } = require('../middleware/audit');
 const { runDetection } = require('../services/partiality');
-const { sendVendorAssignmentEmail } = require('../services/mailer');
+const { sendVendorAssignmentEmail, notifyManager } = require('../services/mailer');
 const { getClientIp, toIST } = require('../utils');
 
 const router = express.Router();
@@ -88,6 +88,19 @@ router.post(
     });
 
     const created = getRequirementById.get(info.lastInsertRowid);
+
+    // Notify all other managers that a new requirement has been raised.
+    const otherManagers = db.prepare('SELECT id FROM managers WHERE id != ?').all(req.manager.id);
+    otherManagers.forEach((m) => {
+      notifyManager({
+        managerId: m.id,
+        title: 'New requirement raised',
+        body: `${req.manager.name} raised a new requirement: ${title} (${quantity} ${unit})`,
+        targetType: 'requirement',
+        targetId: info.lastInsertRowid,
+      });
+    });
+
     res.status(201).json({ requirement: created });
   }
 );
@@ -130,7 +143,7 @@ router.post(
     body('vendor_ids').isArray({ min: 1 }).withMessage('At least one vendor must be selected'),
     body('vendor_ids.*').isInt().withMessage('Invalid vendor id in list'),
   ],
-  async (req, res) => {
+  (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ error: 'Validation failed', details: errors.array() });
@@ -165,8 +178,8 @@ router.post(
 
     runDetection(req.params.id);
 
-    // Each newly-assigned vendor receives their unique secure portal link by email.
-    await Promise.all(newlyAssignedVendors.map((vendor) => sendVendorAssignmentEmail({ vendor, requirement })));
+    // Fire and forget — each newly-assigned vendor receives their secure portal link by email.
+    newlyAssignedVendors.forEach((vendor) => sendVendorAssignmentEmail({ vendor, requirement }));
 
     const vendors = db.prepare(`
       SELECT v.* FROM vendors v
@@ -223,6 +236,19 @@ router.get('/:id/quotations', [param('id').isInt().withMessage('Invalid requirem
     WHERE rv.requirement_id = ?
   `).all(req.params.id);
 
+  // Prices are hidden until at least 2 bids are in — prevents the manager from seeing
+  // a single quote and gaming subsequent vendors.
+  const bidsHidden = enriched.length < 2;
+  const safeQuotations = bidsHidden
+    ? enriched.map((q) => ({
+        ...q,
+        per_unit_price: null,
+        total_value: null,
+        is_lowest: false,
+        revision_history: q.revision_history.map((r) => ({ ...r, per_unit_price: null, total_value: null })),
+      }))
+    : enriched;
+
   const { riskLevel, flags } = runDetection(req.params.id);
 
   recordAudit({
@@ -237,7 +263,8 @@ router.get('/:id/quotations', [param('id').isInt().withMessage('Invalid requirem
   res.json({
     requirement: { ...requirement, created_at_ist: toIST(requirement.created_at) },
     assigned_vendors: assignedVendors,
-    quotations: enriched,
+    quotations: safeQuotations,
+    bids_hidden: bidsHidden,
     partiality: {
       risk_level: riskLevel,
       flags: flags.map((f) => ({ ...f, detected_at_ist: toIST(f.detected_at) })),

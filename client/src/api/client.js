@@ -7,6 +7,15 @@ const api = axios.create({ baseURL: `${API_URL}/api`, withCredentials: true });
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('vqp_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
+
+  // For vendor portal routes, inject the session token as a header so it works
+  // on mobile browsers that block third-party cookies (iOS Safari ITP, etc.).
+  const vendorMatch = config.url?.match(/^\/vendor\/([^/]+)/);
+  if (vendorMatch) {
+    const sessionToken = localStorage.getItem(`vqp_vs_${vendorMatch[1]}`);
+    if (sessionToken) config.headers['X-Vendor-Session'] = sessionToken;
+  }
+
   return config;
 });
 

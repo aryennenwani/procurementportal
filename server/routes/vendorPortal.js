@@ -142,7 +142,7 @@ router.post(
     const sessionId = uuidv4();
     const expiresAt = new Date(Date.now() + SESSION_HOURS * 60 * 60 * 1000).toISOString();
     insertSession.run(sessionId, vendor.id, token, submittedEmail, ip, expiresAt);
-    setSessionCookie(res, sessionId);
+    setSessionCookie(res, sessionId); // desktop browsers use cookie
 
     recordAudit({
       actionType: 'VENDOR_VERIFIED',
@@ -153,7 +153,7 @@ router.post(
       ip,
     });
 
-    res.json({ verified: true });
+    res.json({ verified: true, sessionToken: sessionId });
   }
 );
 
@@ -226,7 +226,7 @@ router.post(
     body('payment_terms').trim().notEmpty().withMessage('Payment terms are required'),
     body('remarks').optional({ checkFalsy: true }).trim(),
   ],
-  async (req, res) => {
+  (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ error: 'Validation failed', details: errors.array() });
@@ -287,7 +287,7 @@ router.post(
         targetType: 'requirement',
         targetId: requirement_id,
       });
-      await sendQuotationNotificationEmail({ manager, vendor, requirement, amount: per_unit_price, revised: false });
+      sendQuotationNotificationEmail({ manager, vendor, requirement, amount: per_unit_price, revised: false });
     }
 
     const quotation = db.prepare('SELECT * FROM quotations WHERE id = ?').get(info.lastInsertRowid);
@@ -309,7 +309,7 @@ router.post(
     body('payment_terms').trim().notEmpty().withMessage('Payment terms are required'),
     body('remarks').optional({ checkFalsy: true }).trim(),
   ],
-  async (req, res) => {
+  (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ error: 'Validation failed', details: errors.array() });
@@ -388,7 +388,7 @@ router.post(
         targetType: 'requirement',
         targetId: requirement_id,
       });
-      await sendQuotationNotificationEmail({ manager, vendor, requirement, amount: per_unit_price, revised: true });
+      sendQuotationNotificationEmail({ manager, vendor, requirement, amount: per_unit_price, revised: true });
     }
 
     const quotation = db.prepare('SELECT * FROM quotations WHERE id = ?').get(info.lastInsertRowid);

@@ -16,11 +16,10 @@ function setSessionCookie(res, sessionId) {
   res.cookie(SESSION_COOKIE, sessionId, cookieOptions);
 }
 
-// Confirms the request carries a live session bound to this exact vendor token. A stolen
-// link by itself is useless — the session only exists after the email-verification gate
-// has matched the vendor's registered email address.
+// Confirms the request carries a live session bound to this exact vendor token. Accepts
+// either the httpOnly cookie (desktop) or the X-Vendor-Session header (mobile/localStorage).
 function requireVendorSession(req, res, next) {
-  const sessionId = req.cookies?.[SESSION_COOKIE];
+  const sessionId = req.cookies?.[SESSION_COOKIE] || req.headers['x-vendor-session'];
   if (!sessionId) {
     return res.status(401).json({ error: 'Please verify your email address to access this portal.' });
   }

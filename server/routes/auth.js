@@ -39,7 +39,7 @@ router.post(
     }
 
     const token = jwt.sign(
-      { id: manager.id, email: manager.email, name: manager.name },
+      { id: manager.id, email: manager.email, name: manager.name, is_admin: manager.is_admin || 0 },
       JWT_SECRET,
       { expiresIn: '12h' }
     );
@@ -55,7 +55,7 @@ router.post(
 
     res.json({
       token,
-      manager: { id: manager.id, email: manager.email, name: manager.name },
+      manager: { id: manager.id, email: manager.email, name: manager.name, is_admin: manager.is_admin || 0 },
     });
   }
 );

@@ -9,16 +9,21 @@ import ConfirmationScreen from './ConfirmationScreen';
 
 function PortalShell({ children }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-2xl">
-        <div className="flex flex-col items-center mb-7">
-          <div className="w-12 h-12 rounded-xl bg-[#1C1C1E] flex items-center justify-center mb-3">
-            <ShieldCheck className="text-[#B8962E]" size={24} />
-          </div>
-          <h1 className="text-xl font-semibold text-[#1C1C1E]">Vendor Quotation Portal</h1>
-          <p className="text-sm text-gray-500 mt-1">Submit your quotations directly — secure, verified access only.</p>
+    <div className="min-h-screen bg-[#F5F8FF] flex flex-col">
+      {/* Top bar */}
+      <header className="bg-[#0B2D71] px-6 py-4 flex items-center gap-3 shadow-sm">
+        <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center">
+          <ShieldCheck className="text-white" size={16} />
         </div>
-        {children}
+        <div>
+          <p className="text-white font-bold text-sm leading-tight">Shivtek Spechemi</p>
+          <p className="text-blue-200/60 text-xs">Vendor Quotation Portal</p>
+        </div>
+      </header>
+      <div className="flex-1 flex items-start justify-center px-4 py-8">
+        <div className="w-full max-w-2xl">
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -34,7 +39,7 @@ function RevisionHistory({ history, unit }) {
     <div className="mt-3">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-[#1C1C1E] transition-colors"
+        className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-[#1E2B4A] transition-colors"
       >
         <History size={13} />
         Revision history ({history.length})
@@ -45,12 +50,12 @@ function RevisionHistory({ history, unit }) {
           {sorted.map((q) => (
             <div key={q.id} className="flex items-center justify-between px-3.5 py-2.5 text-sm">
               <div>
-                <span className="font-medium text-[#1C1C1E]">
+                <span className="font-medium text-[#1E2B4A]">
                   {q.revision_number === 0 ? 'Original submission' : `Revision ${q.revision_number}`}
                 </span>
                 <p className="text-xs text-gray-400 mt-0.5">{q.submitted_at_ist}</p>
               </div>
-              <span className="font-medium text-[#1C1C1E]">₹{q.per_unit_price.toLocaleString('en-IN')} / {unit}</span>
+              <span className="font-medium text-[#1E2B4A]">₹{q.per_unit_price.toLocaleString('en-IN')} / {unit}</span>
             </div>
           ))}
         </div>
@@ -66,7 +71,7 @@ function RequirementCard({ requirement, onSelect, onRevise }) {
     <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="font-semibold text-[#1C1C1E]">{requirement.title}</h3>
+          <h3 className="font-semibold text-[#1E2B4A]">{requirement.title}</h3>
           <p className="text-sm text-gray-500 mt-1">{requirement.description || 'No description provided.'}</p>
         </div>
         <span className="shrink-0 text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">{requirement.status}</span>
@@ -74,15 +79,15 @@ function RequirementCard({ requirement, onSelect, onRevise }) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 text-sm">
         <div>
           <p className="text-xs text-gray-400 flex items-center gap-1"><Package size={12} /> Quantity</p>
-          <p className="font-medium text-[#1C1C1E] mt-0.5">{requirement.quantity} {requirement.unit}</p>
+          <p className="font-medium text-[#1E2B4A] mt-0.5">{requirement.quantity} {requirement.unit}</p>
         </div>
         <div>
           <p className="text-xs text-gray-400">Grade / Spec</p>
-          <p className="font-medium text-[#1C1C1E] mt-0.5">{requirement.grade || '—'}</p>
+          <p className="font-medium text-[#1E2B4A] mt-0.5">{requirement.grade || '—'}</p>
         </div>
         <div className="col-span-2 sm:col-span-2">
           <p className="text-xs text-gray-400 flex items-center gap-1"><Calendar size={12} /> Deadline</p>
-          <p className={`font-medium mt-0.5 ${deadlinePassed ? 'text-red-600' : 'text-[#1C1C1E]'}`}>{requirement.deadline_ist}</p>
+          <p className={`font-medium mt-0.5 ${deadlinePassed ? 'text-red-600' : 'text-[#1E2B4A]'}`}>{requirement.deadline_ist}</p>
         </div>
       </div>
 
@@ -181,7 +186,7 @@ export default function VendorPortal() {
       <PortalShell>
         <div className="bg-white border border-red-200 rounded-xl p-8 text-center">
           <AlertCircle className="mx-auto text-red-500 mb-3" size={32} />
-          <p className="font-medium text-[#1C1C1E]">{error}</p>
+          <p className="font-medium text-[#1E2B4A]">{error}</p>
           <p className="text-sm text-gray-500 mt-2">Please check the link you were given, or contact your procurement manager.</p>
         </div>
       </PortalShell>
@@ -226,12 +231,12 @@ export default function VendorPortal() {
 
   return (
     <PortalShell>
-      <div className="bg-[#1C1C1E] rounded-xl px-5 py-4 mb-6 text-left">
-        <p className="text-white font-medium">{vendor.company_name}</p>
-        <p className="text-gray-400 text-sm mt-0.5">{vendor.contact_person} • {vendor.category}</p>
+      <div className="bg-white border border-[#1A56D6]/20 rounded-xl px-5 py-4 mb-6 text-left shadow-sm">
+        <p className="text-[#1E2B4A] font-semibold">{vendor.company_name}</p>
+        <p className="text-gray-500 text-sm mt-0.5">{vendor.contact_person} • {vendor.category}</p>
       </div>
 
-      <h2 className="font-semibold text-[#1C1C1E] mb-3">Your assigned requirements ({requirements.length})</h2>
+      <h2 className="font-semibold text-[#1E2B4A] mb-3">Your assigned requirements ({requirements.length})</h2>
       {requirements.length === 0 ? (
         <div className="bg-white border border-gray-200 rounded-xl p-10 text-center text-gray-500">
           No requirements have been assigned to you yet. Please check back later.

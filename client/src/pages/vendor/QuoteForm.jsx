@@ -63,9 +63,9 @@ export default function QuoteForm({ token, requirement, mode = 'submit', onCance
   return (
     <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
-        <button onClick={onCancel} className="text-gray-400 hover:text-[#1C1C1E]"><ArrowLeft size={18} /></button>
+        <button onClick={onCancel} className="text-gray-400 hover:text-[#1E2B4A]"><ArrowLeft size={18} /></button>
         <div>
-          <h2 className="font-semibold text-[#1C1C1E]">{requirement.title}</h2>
+          <h2 className="font-semibold text-[#1E2B4A]">{requirement.title}</h2>
           <p className="text-xs text-gray-500 mt-0.5">{requirement.quantity} {requirement.unit} • Deadline {requirement.deadline_ist}</p>
         </div>
       </div>
@@ -91,7 +91,7 @@ export default function QuoteForm({ token, requirement, mode = 'submit', onCance
 
         <div className="rounded-lg bg-gray-50 border border-gray-200 px-4 py-3">
           <p className="text-xs text-gray-500">Total value (auto-calculated)</p>
-          <p className="text-lg font-semibold text-[#1C1C1E] mt-0.5">
+          <p className="text-lg font-semibold text-[#1E2B4A] mt-0.5">
             {totalValue !== null ? `₹${totalValue.toLocaleString('en-IN')}` : '—'}
           </p>
           <p className="text-xs text-gray-400 mt-0.5">{requirement.quantity} {requirement.unit} × per-unit price</p>

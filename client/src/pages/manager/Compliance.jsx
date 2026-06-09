@@ -11,7 +11,7 @@ import { useToast } from '../../context/ToastContext';
 import { Card, PageLoader, Button, Select, EmptyState } from '../../components/Common';
 import { RiskBadge } from '../../components/Badges';
 
-const RISK_GAUGE_COLOR = (score) => (score >= 75 ? '#1f7a1f' : score >= 50 ? '#B8962E' : '#a33');
+const RISK_GAUGE_COLOR = (score) => (score >= 75 ? '#1f7a1f' : score >= 50 ? '#1A56D6' : '#a33');
 const INR = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
 function InvestigateModal({ flag, onClose }) {
@@ -33,7 +33,7 @@ function InvestigateModal({ flag, onClose }) {
       <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white">
           <div>
-            <h2 className="font-semibold text-[#1C1C1E] text-lg">Investigate — {flag.requirement_title}</h2>
+            <h2 className="font-semibold text-[#1E2B4A] text-lg">Investigate — {flag.requirement_title}</h2>
             <p className="text-sm text-gray-500 mt-0.5">Complete quotation history for this requirement.</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
@@ -53,7 +53,7 @@ function InvestigateModal({ flag, onClose }) {
                 {data.quotations.map((q) => (
                   <div key={q.id} className="flex items-center justify-between gap-3 p-3 rounded-lg border border-gray-100">
                     <div>
-                      <p className="font-medium text-[#1C1C1E] text-sm">{q.company_name}</p>
+                      <p className="font-medium text-[#1E2B4A] text-sm">{q.company_name}</p>
                       <p className="text-xs text-gray-500">₹{q.per_unit_price.toLocaleString('en-IN')} • Submitted {q.submitted_at_ist}</p>
                       {q.outcome === 'won' && q.justification && (
                         <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2 py-1 mt-1.5 max-w-md">
@@ -69,7 +69,7 @@ function InvestigateModal({ flag, onClose }) {
                   </div>
                 ))}
               </div>
-              <Link to={`/dashboard/requirements/${flag.requirement_id}`} className="inline-block text-sm text-[#B8962E] hover:underline">
+              <Link to={`/dashboard/requirements/${flag.requirement_id}`} className="inline-block text-sm text-[#1A56D6] hover:underline">
                 Open full requirement →
               </Link>
             </>
@@ -84,9 +84,9 @@ function ExposureCard({ exposure }) {
   return (
     <Card className="p-6">
       <p className="text-sm font-medium text-gray-500 flex items-center gap-2">
-        <Banknote size={16} className="text-[#B8962E]" /> Estimated financial exposure
+        <Banknote size={16} className="text-[#1A56D6]" /> Estimated financial exposure
       </p>
-      <p className="text-3xl font-semibold text-[#1C1C1E] mt-2">{INR(exposure?.total_exposure)}</p>
+      <p className="text-3xl font-semibold text-[#1E2B4A] mt-2">{INR(exposure?.total_exposure)}</p>
       <p className="text-xs text-gray-400 mt-1.5 leading-relaxed">
         Sum of (winning bid − lowest bid) × quantity across all {exposure?.requirement_count || 0} HIGH-risk
         requirement{exposure?.requirement_count === 1 ? '' : 's'} — the amount potentially overpaid versus
@@ -118,7 +118,7 @@ function CollusionMatrix({ matrix }) {
         <tbody>
           {matrix.managers.map((m) => (
             <tr key={m.id}>
-              <td className="px-3 py-2 font-medium text-[#1C1C1E] whitespace-nowrap">{m.name}</td>
+              <td className="px-3 py-2 font-medium text-[#1E2B4A] whitespace-nowrap">{m.name}</td>
               {matrix.vendors.map((v) => {
                 const cell = cellFor(m.id, v.id);
                 if (!cell) return <td key={v.id} className="px-3 py-2 text-center text-gray-300">—</td>;
@@ -129,7 +129,7 @@ function CollusionMatrix({ matrix }) {
                 return (
                   <td key={v.id} className="px-3 py-2 text-center">
                     <div
-                      className={`rounded-lg px-2 py-1.5 ${cell.flagged ? 'text-red-800 font-semibold' : 'text-[#1C1C1E]'}`}
+                      className={`rounded-lg px-2 py-1.5 ${cell.flagged ? 'text-red-800 font-semibold' : 'text-[#1E2B4A]'}`}
                       style={{ backgroundColor: bg }}
                       title={`${cell.wins} win(s) • ${cell.win_share}% of this manager's awards`}
                     >
@@ -153,7 +153,7 @@ function CollusionMatrix({ matrix }) {
 
 function AnomalyDot(props) {
   const { cx, cy, payload } = props;
-  if (!payload.is_anomaly) return <Dot cx={cx} cy={cy} r={3} fill="#B8962E" stroke="#B8962E" />;
+  if (!payload.is_anomaly) return <Dot cx={cx} cy={cy} r={3} fill="#1A56D6" stroke="#1A56D6" />;
   return <Dot cx={cx} cy={cy} r={5} fill="#dc2626" stroke="#dc2626" />;
 }
 
@@ -174,7 +174,7 @@ function PriceHistoryChart({ items }) {
     <div>
       <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <div>
-          <p className="font-medium text-[#1C1C1E] text-sm">{item.item}</p>
+          <p className="font-medium text-[#1E2B4A] text-sm">{item.item}</p>
           <p className="text-xs text-gray-400 mt-0.5">Average winning price: {INR(item.average_price)} • {item.history.length} decision{item.history.length !== 1 ? 's' : ''}</p>
         </div>
         {items.length > 1 && (
@@ -185,7 +185,7 @@ function PriceHistoryChart({ items }) {
       </div>
       <ResponsiveContainer width="100%" height={220}>
         <LineChart data={chartData} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f0eee9" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#DCE8FF" />
           <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={{ stroke: '#e5e7eb' }} tickLine={false} />
           <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={64}
             tickFormatter={(v) => `₹${v.toLocaleString('en-IN')}`} />
@@ -194,7 +194,7 @@ function PriceHistoryChart({ items }) {
             labelFormatter={(_, payload) => payload?.[0]?.payload?.decided_at_ist || ''}
             contentStyle={{ borderRadius: 10, borderColor: '#e5e7eb', fontSize: 12 }}
           />
-          <Line type="monotone" dataKey="price" stroke="#B8962E" strokeWidth={2} dot={({ key, ...dotProps }) => <AnomalyDot key={key ?? `${dotProps.cx}-${dotProps.cy}`} {...dotProps} />} activeDot={{ r: 6 }} />
+          <Line type="monotone" dataKey="price" stroke="#1A56D6" strokeWidth={2} dot={({ key, ...dotProps }) => <AnomalyDot key={key ?? `${dotProps.cx}-${dotProps.cy}`} {...dotProps} />} activeDot={{ r: 6 }} />
         </LineChart>
       </ResponsiveContainer>
       <p className="text-xs text-gray-400 mt-2 flex items-center gap-1.5">
@@ -216,7 +216,7 @@ function SuspiciousTransactions({ transactions, onInvestigate }) {
             <div className="flex items-start gap-3 min-w-0">
               <RiskBadge level={t.risk_level} />
               <div className="min-w-0">
-                <p className="font-medium text-[#1C1C1E] text-sm">{t.requirement_title}</p>
+                <p className="font-medium text-[#1E2B4A] text-sm">{t.requirement_title}</p>
                 <p className="text-sm text-gray-500 mt-0.5">{t.description}</p>
                 <p className="text-xs text-gray-400 mt-1">{t.flag_type.replace(/_/g, ' ')} • Detected {t.detected_at_ist}</p>
               </div>
@@ -308,8 +308,8 @@ export default function Compliance() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-[#1C1C1E] flex items-center gap-2">
-            <ShieldAlert size={22} className="text-[#B8962E]" /> Compliance Dashboard
+          <h1 className="text-2xl font-semibold text-[#1E2B4A] flex items-center gap-2">
+            <ShieldAlert size={22} className="text-[#1A56D6]" /> Compliance Dashboard
           </h1>
           <p className="text-sm text-gray-500 mt-1">Anti-corruption, partiality & embezzlement detection overview.</p>
         </div>
@@ -324,7 +324,7 @@ export default function Compliance() {
           <p className="text-sm font-medium text-gray-500 mb-3">Procurement health score</p>
           <div className="relative w-40 h-40">
             <svg viewBox="0 0 120 120" className="w-40 h-40 -rotate-90">
-              <circle cx="60" cy="60" r="52" fill="none" stroke="#f0eee9" strokeWidth="13" />
+              <circle cx="60" cy="60" r="52" fill="none" stroke="#DCE8FF" strokeWidth="13" />
               <circle
                 cx="60" cy="60" r="52" fill="none"
                 stroke={RISK_GAUGE_COLOR(score?.score)}
@@ -333,18 +333,18 @@ export default function Compliance() {
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-4xl font-semibold text-[#1C1C1E]">{score?.score}</span>
+              <span className="text-4xl font-semibold text-[#1E2B4A]">{score?.score}</span>
               <span className="text-xs text-gray-500">out of 100</span>
             </div>
           </div>
-          <p className="mt-3 font-medium text-[#1C1C1E]">{score?.label}</p>
+          <p className="mt-3 font-medium text-[#1E2B4A]">{score?.label}</p>
         </Card>
 
         <ExposureCard exposure={exposure} />
 
         <Card className="p-6">
-          <p className="font-medium text-[#1C1C1E] mb-4 flex items-center gap-2">
-            <Trophy size={17} className="text-[#B8962E]" /> Vendor win-rate leaderboard
+          <p className="font-medium text-[#1E2B4A] mb-4 flex items-center gap-2">
+            <Trophy size={17} className="text-[#1A56D6]" /> Vendor win-rate leaderboard
           </p>
           {leaderboard.length === 0 ? (
             <p className="text-sm text-gray-400 py-8 text-center">No quotations recorded yet.</p>
@@ -355,12 +355,12 @@ export default function Compliance() {
                   <span className="w-6 text-sm font-medium text-gray-400">#{idx + 1}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between text-sm mb-1">
-                      <span className="font-medium text-[#1C1C1E] truncate">{v.company_name}</span>
+                      <span className="font-medium text-[#1E2B4A] truncate">{v.company_name}</span>
                       <span className="text-gray-500 shrink-0 ml-2">{v.win_rate}% ({v.wins}/{v.total_bids})</span>
                     </div>
                     <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
                       <div
-                        className={`h-full rounded-full ${v.win_rate > 60 ? 'bg-red-400' : 'bg-[#B8962E]'}`}
+                        className={`h-full rounded-full ${v.win_rate > 60 ? 'bg-red-400' : 'bg-[#1A56D6]'}`}
                         style={{ width: `${v.win_rate}%` }}
                       />
                     </div>
@@ -374,15 +374,15 @@ export default function Compliance() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <Card className="p-6">
-          <p className="font-medium text-[#1C1C1E] mb-4 flex items-center gap-2">
-            <Grid3x3 size={17} className="text-[#B8962E]" /> Manager–vendor collusion matrix
+          <p className="font-medium text-[#1E2B4A] mb-4 flex items-center gap-2">
+            <Grid3x3 size={17} className="text-[#1A56D6]" /> Manager–vendor collusion matrix
           </p>
           <CollusionMatrix matrix={matrix} />
         </Card>
 
         <Card className="p-6">
-          <p className="font-medium text-[#1C1C1E] mb-4 flex items-center gap-2">
-            <TrendingUp size={17} className="text-[#B8962E]" /> Item price history
+          <p className="font-medium text-[#1E2B4A] mb-4 flex items-center gap-2">
+            <TrendingUp size={17} className="text-[#1A56D6]" /> Item price history
           </p>
           <PriceHistoryChart items={priceHistory} />
         </Card>
@@ -394,7 +394,7 @@ export default function Compliance() {
             <button
               onClick={() => setView('flags')}
               className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                view === 'flags' ? 'bg-[#1C1C1E] text-white border-[#1C1C1E]' : 'border-gray-300 text-gray-600 hover:border-[#1C1C1E]'
+                view === 'flags' ? 'bg-[#1A56D6] text-white border-[#1A56D6]' : 'border-gray-300 text-gray-600 hover:border-[#1A56D6]'
               }`}
             >
               Flagged requirements ({flags.length})
@@ -415,7 +415,7 @@ export default function Compliance() {
                   key={r}
                   onClick={() => setRiskFilter(r)}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                    riskFilter === r ? 'bg-[#1C1C1E] text-white border-[#1C1C1E]' : 'border-gray-300 text-gray-600 hover:border-[#1C1C1E]'
+                    riskFilter === r ? 'bg-[#1A56D6] text-white border-[#1A56D6]' : 'border-gray-300 text-gray-600 hover:border-[#1A56D6]'
                   }`}
                 >
                   {r}
@@ -439,7 +439,7 @@ export default function Compliance() {
                   <div className="flex items-start gap-3 min-w-0">
                     <RiskBadge level={f.risk_level} />
                     <div className="min-w-0">
-                      <p className="font-medium text-[#1C1C1E] text-sm">{f.requirement_title}</p>
+                      <p className="font-medium text-[#1E2B4A] text-sm">{f.requirement_title}</p>
                       <p className="text-sm text-gray-500 mt-0.5">{f.description}</p>
                       <p className="text-xs text-gray-400 mt-1">{f.flag_type.replace(/_/g, ' ')} • Detected {f.detected_at_ist}</p>
                     </div>

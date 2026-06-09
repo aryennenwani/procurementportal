@@ -16,16 +16,15 @@ function seed() {
 
   console.log('[seed] Creating default admin account...');
 
-  db.prepare('INSERT INTO managers (email, password_hash, name) VALUES (?, ?, ?)').run(
+  db.prepare('INSERT INTO managers (email, password_hash, name, is_admin) VALUES (?, ?, ?, ?)').run(
     'admin@company.com',
     bcrypt.hashSync('admin123', 10),
-    'Admin'
+    'Admin',
+    1
   );
 
-  console.log('[seed] Done.');
-  console.log('');
-  console.log('  Manager login:  admin@company.com / admin123');
-  console.log('');
+  console.log('[seed] Done. Default login: admin@company.com / admin123');
+  console.log('[seed] IMPORTANT: Change the default password immediately after first login.');
 }
 
 if (require.main === module) {

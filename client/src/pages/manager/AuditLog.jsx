@@ -38,8 +38,8 @@ export default function AuditLog() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-[#1C1C1E] flex items-center gap-2">
-          <ScrollText size={22} className="text-[#B8962E]" /> Audit Log
+        <h1 className="text-2xl font-semibold text-[#1E2B4A] flex items-center gap-2">
+          <ScrollText size={22} className="text-[#1A56D6]" /> Audit Log
         </h1>
         <p className="text-sm text-gray-500 mt-1 flex items-center gap-1.5">
           <Lock size={13} /> Read-only — every action in the system is recorded with timestamp, actor, and IP address. Nothing here can be edited or deleted.
@@ -62,7 +62,7 @@ export default function AuditLog() {
             onChange={(e) => setFilters((f) => ({ ...f, performed_by: e.target.value }))}
             className="!py-2"
           />
-          <button type="submit" className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-[#1C1C1E] text-white hover:bg-black transition-colors">
+          <button type="submit" className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-[#0B2D71] text-white hover:bg-black transition-colors">
             <Search size={15} /> Search
           </button>
         </form>
@@ -95,7 +95,7 @@ export default function AuditLog() {
                     onClick={() => setExpanded(expanded === e.id ? null : e.id)}
                     className="cursor-pointer hover:bg-gray-50 transition-colors"
                   >
-                    <td className="px-4 py-3 font-medium text-[#1C1C1E] whitespace-nowrap">{e.action_type}</td>
+                    <td className="px-4 py-3 font-medium text-[#1E2B4A] whitespace-nowrap">{e.action_type}</td>
                     <td className="px-4 py-3 text-gray-600 truncate max-w-[220px]">{e.performed_by}</td>
                     <td className="px-4 py-3 text-gray-500">{e.target_type ? `${e.target_type}${e.target_id ? ` #${e.target_id}` : ''}` : '—'}</td>
                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{e.timestamp_ist}</td>

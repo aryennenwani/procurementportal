@@ -54,8 +54,8 @@ export default function Archive() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-[#1C1C1E] flex items-center gap-2">
-          <ArchiveIcon size={22} className="text-[#B8962E]" /> Proposal Archive
+        <h1 className="text-2xl font-semibold text-[#1E2B4A] flex items-center gap-2">
+          <ArchiveIcon size={22} className="text-[#1A56D6]" /> Proposal Archive
         </h1>
         <p className="text-sm text-gray-500 mt-1 flex items-center gap-1.5">
           <Lock size={13} /> Read-only and tamper-proof — every quotation ever submitted is permanently retained, including those not selected.
@@ -76,7 +76,7 @@ export default function Archive() {
           </Select>
           <Input label="From date" type="date" value={filters.from} onChange={onFilterChange('from')} className="!py-2" />
           <Input label="To date" type="date" value={filters.to} onChange={onFilterChange('to')} className="!py-2" />
-          <button type="submit" className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-[#1C1C1E] text-white hover:bg-black transition-colors">
+          <button type="submit" className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-[#0B2D71] text-white hover:bg-black transition-colors">
             <Search size={15} /> Search
           </button>
         </form>
@@ -108,11 +108,11 @@ export default function Archive() {
               {proposals.map((p) => (
                 <tr key={p.id}>
                   <td className="px-4 py-3.5">
-                    <p className="font-medium text-[#1C1C1E]">{p.vendor_name}</p>
+                    <p className="font-medium text-[#1E2B4A]">{p.vendor_name}</p>
                     <p className="text-xs text-gray-500">{p.vendor_category}</p>
                   </td>
-                  <td className="px-4 py-3.5 text-[#1C1C1E]">{p.requirement_title}</td>
-                  <td className="px-4 py-3.5 text-right text-[#1C1C1E] font-medium">₹{p.per_unit_price.toLocaleString('en-IN')} / {p.unit}</td>
+                  <td className="px-4 py-3.5 text-[#1E2B4A]">{p.requirement_title}</td>
+                  <td className="px-4 py-3.5 text-right text-[#1E2B4A] font-medium">₹{p.per_unit_price.toLocaleString('en-IN')} / {p.unit}</td>
                   <td className="px-4 py-3.5 text-gray-500 whitespace-nowrap">{p.submitted_at_ist}</td>
                   <td className="px-4 py-3.5">
                     <OutcomeBadge outcome={statusLabel(p.status)} />

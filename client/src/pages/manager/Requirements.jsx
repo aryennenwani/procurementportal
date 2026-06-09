@@ -49,7 +49,7 @@ function CreateRequirementModal({ onClose, onCreated }) {
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white">
-          <h2 className="font-semibold text-[#1C1C1E] text-lg">New procurement requirement</h2>
+          <h2 className="font-semibold text-[#1E2B4A] text-lg">New procurement requirement</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
         </div>
         <form onSubmit={onSubmit} className="p-6 space-y-4">
@@ -100,7 +100,7 @@ export default function Requirements() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-[#1C1C1E]">Requirements</h1>
+          <h1 className="text-2xl font-semibold text-[#1E2B4A]">Requirements</h1>
           <p className="text-sm text-gray-500 mt-1">Create and manage procurement requirements.</p>
         </div>
         <Button variant="gold" onClick={() => setShowModal(true)}>
@@ -114,7 +114,7 @@ export default function Requirements() {
             key={s}
             onClick={() => setFilter(s)}
             className={`px-3.5 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-              filter === s ? 'bg-[#1C1C1E] text-white border-[#1C1C1E]' : 'border-gray-300 text-gray-600 hover:border-[#1C1C1E]'
+              filter === s ? 'bg-[#1A56D6] text-white border-[#1A56D6]' : 'border-gray-300 text-gray-600 hover:border-[#1A56D6]'
             }`}
           >
             {s}
@@ -136,9 +136,9 @@ export default function Requirements() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((r) => (
             <Link key={r.id} to={`/dashboard/requirements/${r.id}`}>
-              <Card className="p-5 h-full hover:border-[#B8962E]/50 hover:shadow-md transition-all">
+              <Card className="p-5 h-full hover:border-[#1A56D6]/50 hover:shadow-md transition-all">
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <h3 className="font-semibold text-[#1C1C1E] leading-snug">{r.title}</h3>
+                  <h3 className="font-semibold text-[#1E2B4A] leading-snug">{r.title}</h3>
                   <StatusBadge status={r.status} />
                 </div>
                 <p className="text-sm text-gray-500 line-clamp-2 mb-3">{r.description || 'No description provided.'}</p>

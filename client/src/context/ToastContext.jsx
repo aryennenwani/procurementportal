@@ -42,7 +42,7 @@ export function ToastProvider({ children }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`flex items-start gap-2 bg-white border ${BORDERS[t.type]} shadow-lg rounded-lg px-4 py-3 text-sm text-[#1C1C1E] animate-in fade-in slide-in-from-bottom-2`}
+            className={`flex items-start gap-2 bg-white border ${BORDERS[t.type]} shadow-lg rounded-lg px-4 py-3 text-sm text-[#1E2B4A] animate-in fade-in slide-in-from-bottom-2`}
           >
             {ICONS[t.type]}
             <p className="flex-1">{t.message}</p>

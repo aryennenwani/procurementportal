@@ -13,7 +13,10 @@ export default function EmailGate({ token, onVerified }) {
     setError('');
     setSubmitting(true);
     try {
-      await api.post(`/vendor/${token}/verify`, { email });
+      const { data } = await api.post(`/vendor/${token}/verify`, { email });
+      if (data.sessionToken) {
+        localStorage.setItem(`vqp_vs_${token}`, data.sessionToken);
+      }
       onVerified();
     } catch (err) {
       setError(apiErrorMessage(err, 'This link is not associated with that email address.'));
@@ -25,9 +28,9 @@ export default function EmailGate({ token, onVerified }) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-7 text-center">
       <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
-        <Lock className="text-[#1C1C1E]" size={24} />
+        <Lock className="text-[#1E2B4A]" size={24} />
       </div>
-      <h2 className="text-lg font-semibold text-[#1C1C1E]">Enter your email address to access your portal</h2>
+      <h2 className="text-lg font-semibold text-[#1E2B4A]">Enter your email address to access your portal</h2>
       <p className="text-sm text-gray-500 mt-1.5 max-w-sm mx-auto">
         For your security, we verify your identity before showing any requirement details.
       </p>
