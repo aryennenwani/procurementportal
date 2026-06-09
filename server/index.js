@@ -1,5 +1,6 @@
 require('dotenv').config();
 const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -22,6 +23,7 @@ const notificationRoutes = require('./routes/notifications');
 const managerAdminRoutes = require('./routes/managerAdmin');
 
 const PORT = process.env.PORT || 4000;
+const IS_PROD = process.env.NODE_ENV === 'production';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const allowedOrigins = [FRONTEND_URL, 'http://localhost:5173'];
 
@@ -65,9 +67,19 @@ app.use('/api/quotations', quotationRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/managers', managerAdminRoutes);
 
-app.use((req, res) => {
-  res.status(404).json({ error: 'The requested resource was not found.' });
+// Unmatched API routes → JSON 404
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'The requested API resource was not found.' });
 });
+
+// In production, serve the built React app and let the SPA handle routing.
+const clientDist = path.join(__dirname, '../client/dist');
+if (IS_PROD && fs.existsSync(clientDist)) {
+  app.use(express.static(clientDist));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(clientDist, 'index.html'));
+  });
+}
 
 app.use((err, req, res, next) => {
   console.error('[error]', err);
@@ -76,4 +88,10 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`[server] Shivtek Spechemi Procurement Portal running on port ${PORT}`);
+  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+    console.warn('[email]  WARNING: GMAIL_USER / GMAIL_APP_PASSWORD not set — vendor emails will NOT be sent.');
+    console.warn('[email]  Set these env vars in Railway to enable email notifications.');
+  } else {
+    console.log(`[email]  Email configured for ${process.env.GMAIL_USER}`);
+  }
 });

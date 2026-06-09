@@ -24,16 +24,21 @@ function getTransporter() {
 
 function layout(bodyHtml, ctaLabel, ctaUrl) {
   return `
-  <div style="background:#ffffff;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1C1C1E;max-width:560px;margin:0 auto;padding:32px 28px;">
-    <p style="font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:#B8962E;font-weight:600;margin:0 0 18px;">Vendor Procurement Portal</p>
-    ${bodyHtml}
-    ${ctaUrl ? `
-    <div style="margin:28px 0 8px;">
-      <a href="${ctaUrl}" style="display:inline-block;background:#B8962E;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 24px;border-radius:8px;">${ctaLabel}</a>
-    </div>` : ''}
-    <p style="font-size:12px;color:#8a8a8e;margin-top:32px;border-top:1px solid #eee;padding-top:16px;">
-      This is an automated message from the Vendor Procurement Portal. Please do not reply to this email.
-    </p>
+  <div style="background:#ffffff;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1E2B4A;max-width:560px;margin:0 auto;padding:0;">
+    <div style="background:#0B2D71;padding:20px 28px;border-radius:8px 8px 0 0;">
+      <p style="font-size:15px;font-weight:700;color:#ffffff;margin:0;">Shivtek Spechemi</p>
+      <p style="font-size:12px;color:rgba(255,255,255,0.6);margin:2px 0 0;">Vendor Procurement Portal</p>
+    </div>
+    <div style="padding:28px 28px 24px;">
+      ${bodyHtml}
+      ${ctaUrl ? `
+      <div style="margin:28px 0 8px;">
+        <a href="${ctaUrl}" style="display:inline-block;background:#1A56D6;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 24px;border-radius:8px;">${ctaLabel}</a>
+      </div>` : ''}
+      <p style="font-size:12px;color:#8a8a8e;margin-top:28px;border-top:1px solid #eee;padding-top:16px;">
+        This is an automated message from Shivtek Spechemi Industries Ltd. Please do not reply to this email.
+      </p>
+    </div>
   </div>`;
 }
 
