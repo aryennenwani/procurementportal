@@ -2,32 +2,115 @@ import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ClipboardList, Users, Archive, ShieldAlert, ScrollText,
-  Menu, X, LogOut, UserCog, ChevronLeft,
+  Menu, X, LogOut, UserCog, ChevronLeft, KeyRound,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { Button, Input } from './Common';
 import NotificationBell from './NotificationBell';
+import api, { apiErrorMessage } from '../api/client';
 
-const BASE_NAV_ITEMS = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/dashboard/requirements', label: 'Requirements', icon: ClipboardList },
-  { to: '/dashboard/vendors', label: 'Vendors', icon: Users },
-  { to: '/dashboard/archive', label: 'Proposal Archive', icon: Archive },
-  { to: '/dashboard/compliance', label: 'Compliance', icon: ShieldAlert },
-  { to: '/dashboard/audit-log', label: 'Audit Log', icon: ScrollText },
-];
+function ChangePasswordModal({ onClose }) {
+  const [form, setForm] = useState({ current_password: '', new_password: '', confirm_password: '' });
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const toast = useToast();
 
-const ADMIN_NAV_ITEMS = [
-  { to: '/dashboard/managers', label: 'Managers', icon: UserCog },
-];
+  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    setErrors({});
+    if (form.new_password !== form.confirm_password) {
+      setErrors({ confirm_password: 'Passwords do not match.' });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await api.post('/auth/change-password', {
+        current_password: form.current_password,
+        new_password: form.new_password,
+      });
+      toast.success('Password changed successfully.');
+      onClose();
+    } catch (err) {
+      if (err.response?.status === 400 && err.response.data?.details) {
+        const fieldErrors = {};
+        err.response.data.details.forEach((d) => { fieldErrors[d.path] = d.msg; });
+        setErrors(fieldErrors);
+      } else {
+        toast.error(apiErrorMessage(err, 'Could not change password.'));
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 className="font-semibold text-[#1E2B4A] text-lg">Change password</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
+        </div>
+        <form onSubmit={onSubmit} className="p-6 space-y-4">
+          <Input
+            label="Current password"
+            type="password"
+            required
+            value={form.current_password}
+            onChange={set('current_password')}
+            error={errors.current_password}
+            placeholder="Enter current password"
+          />
+          <Input
+            label="New password"
+            type="password"
+            required
+            value={form.new_password}
+            onChange={set('new_password')}
+            error={errors.new_password}
+            placeholder="Minimum 8 characters"
+          />
+          <Input
+            label="Confirm new password"
+            type="password"
+            required
+            value={form.confirm_password}
+            onChange={set('confirm_password')}
+            error={errors.confirm_password}
+            placeholder="Repeat new password"
+          />
+          <div className="flex justify-end gap-3 pt-1">
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit" variant="gold" disabled={submitting}>
+              {submitting ? 'Saving…' : 'Save password'}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { manager, logout, isAdmin } = useAuth();
-  const NAV_ITEMS = isAdmin ? [...BASE_NAV_ITEMS, ...ADMIN_NAV_ITEMS] : BASE_NAV_ITEMS;
+  const [showChangePwd, setShowChangePwd] = useState(false);
+  const { manager, logout, isAdmin, hasPermission } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+
+  const NAV_ITEMS = [
+    { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
+    { to: '/dashboard/requirements', label: 'Requirements', icon: ClipboardList },
+    { to: '/dashboard/vendors', label: 'Vendors', icon: Users },
+    { to: '/dashboard/archive', label: 'Proposal Archive', icon: Archive },
+    ...(hasPermission('view_compliance') ? [{ to: '/dashboard/compliance', label: 'Compliance', icon: ShieldAlert }] : []),
+    ...(hasPermission('view_audit') ? [{ to: '/dashboard/audit-log', label: 'Audit Log', icon: ScrollText }] : []),
+    ...(isAdmin ? [{ to: '/dashboard/managers', label: 'Managers', icon: UserCog }] : []),
+  ];
 
   const onLogout = () => {
     logout();
@@ -82,6 +165,14 @@ export default function DashboardLayout() {
             <p className="text-blue-200/60 text-xs truncate">{manager?.email}</p>
           </div>
         )}
+        <button
+          onClick={() => setShowChangePwd(true)}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-blue-100/70 hover:bg-white/10 hover:text-white transition-colors"
+          title="Change password"
+        >
+          <KeyRound size={17} />
+          {!collapsed && <span>Change password</span>}
+        </button>
         <button
           onClick={onLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-blue-100/70 hover:bg-white/10 hover:text-white transition-colors"
@@ -146,6 +237,8 @@ export default function DashboardLayout() {
           </div>
         </main>
       </div>
+
+      {showChangePwd && <ChangePasswordModal onClose={() => setShowChangePwd(false)} />}
     </div>
   );
 }

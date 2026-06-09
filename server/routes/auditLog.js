@@ -1,11 +1,12 @@
 const express = require('express');
 const { query, validationResult } = require('express-validator');
 const db = require('../db');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requirePermission } = require('../middleware/auth');
 const { toIST } = require('../utils');
 
 const router = express.Router();
 router.use(requireAuth);
+router.use(requirePermission('view_audit'));
 
 router.get(
   '/',

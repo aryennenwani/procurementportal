@@ -2,13 +2,14 @@ const express = require('express');
 const { Parser } = require('json2csv');
 const PDFDocument = require('pdfkit');
 const db = require('../db');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requirePermission } = require('../middleware/auth');
 const { recordAudit } = require('../middleware/audit');
 const { computeHealthScore, runDetection, runGlobalDetection } = require('../services/partiality');
 const { getClientIp, toIST } = require('../utils');
 
 const router = express.Router();
 router.use(requireAuth);
+router.use(requirePermission('view_compliance'));
 
 // Re-runs every detection signal (per-requirement + cross-requirement) so all derived
 // views — score, flags, matrices, exposure — reflect the latest data on every load.

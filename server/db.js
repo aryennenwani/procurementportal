@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const Database = require('better-sqlite3');
+const bcrypt = require('bcryptjs');
 
 const dbPath = process.env.DB_PATH || path.join(__dirname, 'procurement.db');
 const dataDir = path.dirname(dbPath);
@@ -165,12 +166,24 @@ function ensureColumn(table, column, definition) {
 ensureColumn('quotation_outcomes', 'justification', 'TEXT');
 ensureColumn('partiality_flags', 'metric_value', 'REAL');
 ensureColumn('managers', 'is_admin', 'INTEGER NOT NULL DEFAULT 0');
+ensureColumn('managers', 'is_primary_admin', 'INTEGER NOT NULL DEFAULT 0');
+ensureColumn('managers', 'permissions', "TEXT NOT NULL DEFAULT '[]'");
 
 // On first migration, promote the earliest manager to admin so there is always one.
 const adminCount = db.prepare('SELECT COUNT(*) AS cnt FROM managers WHERE is_admin = 1').get().cnt;
 if (adminCount === 0) {
   const first = db.prepare('SELECT id FROM managers ORDER BY id ASC LIMIT 1').get();
   if (first) db.prepare('UPDATE managers SET is_admin = 1 WHERE id = ?').run(first.id);
+}
+
+// Ensure primary admin kashish@shiva-group.com exists.
+const PRIMARY_ADMIN_EMAIL = 'kashish@shiva-group.com';
+const existingKashish = db.prepare('SELECT id FROM managers WHERE email = ?').get(PRIMARY_ADMIN_EMAIL);
+if (!existingKashish) {
+  db.prepare('INSERT INTO managers (email, password_hash, name, is_admin, is_primary_admin) VALUES (?, ?, ?, 1, 1)')
+    .run(PRIMARY_ADMIN_EMAIL, bcrypt.hashSync('kashish123', 10), 'Kashish');
+} else {
+  db.prepare('UPDATE managers SET is_admin = 1, is_primary_admin = 1 WHERE email = ?').run(PRIMARY_ADMIN_EMAIL);
 }
 
 module.exports = db;

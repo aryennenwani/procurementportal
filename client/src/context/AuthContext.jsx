@@ -26,8 +26,41 @@ export function AuthProvider({ children }) {
     setManager(null);
   }, []);
 
+  // Re-fetches the manager from the server and syncs localStorage.
+  // Call this after an admin changes another user's permissions or role.
+  const refreshManager = useCallback(async () => {
+    try {
+      const { data } = await api.get('/auth/me');
+      localStorage.setItem('vqp_manager', JSON.stringify(data.manager));
+      setManager(data.manager);
+    } catch {
+      // silently ignore — stale data is better than crashing
+    }
+  }, []);
+
+  const hasPermission = useCallback(
+    (permission) => {
+      if (!manager) return false;
+      if (manager.is_admin) return true;
+      return Array.isArray(manager.permissions) && manager.permissions.includes(permission);
+    },
+    [manager]
+  );
+
   return (
-    <AuthContext.Provider value={{ manager, token, login, logout, isAuthenticated: !!token, isAdmin: !!(manager?.is_admin) }}>
+    <AuthContext.Provider
+      value={{
+        manager,
+        token,
+        login,
+        logout,
+        refreshManager,
+        hasPermission,
+        isAuthenticated: !!token,
+        isAdmin: !!(manager?.is_admin),
+        isPrimaryAdmin: !!(manager?.is_primary_admin),
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

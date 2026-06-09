@@ -51,7 +51,7 @@ async function sendMail({ to, subject, html, context }) {
   console.log(`[email] Sending "${subject}" to ${to} ...`);
   try {
     const { error } = await client.emails.send({
-      from: 'Shivtek Spechemi <onboarding@resend.dev>',
+      from: 'Shivtek Spechemi <hello@cardinaldigitalsolutions.in>',
       to: [to],
       subject,
       html,

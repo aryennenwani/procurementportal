@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardLayout from './components/DashboardLayout';
@@ -14,6 +14,18 @@ import Compliance from './pages/manager/Compliance';
 import AuditLog from './pages/manager/AuditLog';
 import ManagersList from './pages/manager/ManagersList';
 import VendorPortal from './pages/vendor/VendorPortal';
+
+function PermissionRoute({ permission, children }) {
+  const { hasPermission } = useAuth();
+  if (!hasPermission(permission)) return <Navigate to="/dashboard" replace />;
+  return children;
+}
+
+function AdminRoute({ children }) {
+  const { isAdmin } = useAuth();
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
+  return children;
+}
 
 export default function App() {
   return (
@@ -38,9 +50,30 @@ export default function App() {
               <Route path="requirements/:id" element={<RequirementDetail />} />
               <Route path="vendors" element={<Vendors />} />
               <Route path="archive" element={<Archive />} />
-              <Route path="compliance" element={<Compliance />} />
-              <Route path="audit-log" element={<AuditLog />} />
-              <Route path="managers" element={<ManagersList />} />
+              <Route
+                path="compliance"
+                element={
+                  <PermissionRoute permission="view_compliance">
+                    <Compliance />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="audit-log"
+                element={
+                  <PermissionRoute permission="view_audit">
+                    <AuditLog />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="managers"
+                element={
+                  <AdminRoute>
+                    <ManagersList />
+                  </AdminRoute>
+                }
+              />
             </Route>
 
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
