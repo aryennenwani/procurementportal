@@ -1,5 +1,4 @@
 const nodemailer = require('nodemailer');
-const dns = require('dns');
 const db = require('../db');
 const { recordAudit } = require('../middleware/audit');
 const { toIST } = require('../utils');
@@ -22,8 +21,6 @@ function getTransporter() {
     connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 15000,
-    lookup: (hostname, options, callback) =>
-      dns.lookup(hostname, { ...options, family: 4 }, callback),
   });
   return transporter;
 }
