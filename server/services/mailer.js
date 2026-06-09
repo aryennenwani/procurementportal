@@ -42,11 +42,10 @@ function layout(bodyHtml, ctaLabel, ctaUrl) {
   </div>`;
 }
 
-// Sends an email via Gmail SMTP. Never throws — on failure it logs an "email_failed" audit
-// entry and returns so the calling API request can complete normally.
 async function sendMail({ to, subject, html, context }) {
   const t = getTransporter();
   if (!t) {
+    console.warn(`[email] SKIPPED — credentials not configured. Would have sent "${subject}" to ${to}`);
     recordAudit({
       actionType: 'email_failed',
       performedBy: 'system',
@@ -58,14 +57,17 @@ async function sendMail({ to, subject, html, context }) {
     return;
   }
 
+  console.log(`[email] Sending "${subject}" to ${to} ...`);
   try {
     await t.sendMail({
-      from: `"Vendor Procurement Portal" <${process.env.GMAIL_USER}>`,
+      from: `"Shivtek Spechemi" <${process.env.GMAIL_USER}>`,
       to,
       subject,
       html,
     });
+    console.log(`[email] Sent OK → ${to}`);
   } catch (err) {
+    console.error(`[email] FAILED → ${to} | ${err.message}`);
     recordAudit({
       actionType: 'email_failed',
       performedBy: 'system',
@@ -77,7 +79,6 @@ async function sendMail({ to, subject, html, context }) {
   }
 }
 
-// (a) Sent when a vendor is assigned to a requirement: their secure portal link + requirement details.
 async function sendVendorAssignmentEmail({ vendor, requirement }) {
   const portalUrl = `${FRONTEND_URL}/vendor/${vendor.unique_token}`;
   const html = layout(`
@@ -104,7 +105,6 @@ async function sendVendorAssignmentEmail({ vendor, requirement }) {
   });
 }
 
-// (b) Sent to the manager who created the requirement when a vendor submits or revises a quote.
 async function sendQuotationNotificationEmail({ manager, vendor, requirement, amount, revised = false }) {
   const html = layout(`
     <h1 style="font-size:20px;margin:0 0 16px;">${revised ? 'Quotation revised' : 'New quotation received'}</h1>
