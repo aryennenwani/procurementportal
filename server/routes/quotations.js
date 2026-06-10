@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, param, validationResult } = require('express-validator');
 const db = require('../db');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireProcurementManager } = require('../middleware/auth');
 const { recordAudit } = require('../middleware/audit');
 const { getClientIp, toIST } = require('../utils');
 const { runDetection, runGlobalDetection } = require('../services/partiality');
@@ -34,6 +34,7 @@ const insertOutcome = db.prepare(`
 // the quotation itself is never modified, preserving the immutable original submission.
 router.post(
   '/:id/outcome',
+  requireProcurementManager,
   [
     param('id').isInt().withMessage('Invalid quotation id'),
     body('outcome').isIn(['won', 'not_selected']).withMessage('Outcome must be "won" or "not_selected"'),

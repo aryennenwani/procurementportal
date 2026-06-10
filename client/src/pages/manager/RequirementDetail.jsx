@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import api, { apiErrorMessage } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 import { Card, PageLoader, Button, Select, EmptyState } from '../../components/Common';
 import { StatusBadge, RiskBadge, OutcomeBadge } from '../../components/Badges';
 
@@ -260,6 +261,7 @@ export default function RequirementDetail() {
   const [outcomeFor, setOutcomeFor] = useState(null);
   const [statusUpdating, setStatusUpdating] = useState(false);
   const toast = useToast();
+  const { isFactoryManager } = useAuth();
 
   const load = async () => {
     try {
@@ -382,9 +384,11 @@ export default function RequirementDetail() {
           <p className="font-medium text-[#1E2B4A] text-sm flex items-center gap-2">
             <Users size={16} className="text-gray-400" /> Assigned vendors ({assigned_vendors.length})
           </p>
-          <Button variant="outline" onClick={() => setShowAssign(true)} className="!py-1.5 !px-3 text-xs">
-            <Plus size={14} /> Assign vendors
-          </Button>
+          {!isFactoryManager && (
+            <Button variant="outline" onClick={() => setShowAssign(true)} className="!py-1.5 !px-3 text-xs">
+              <Plus size={14} /> Assign vendors
+            </Button>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           {assigned_vendors.map((v) => (
@@ -480,7 +484,7 @@ export default function RequirementDetail() {
                       )}
                     </td>
                     <td className="px-4 py-3.5 text-right">
-                      {!q.outcome && (
+                      {!q.outcome && !isFactoryManager && (
                         <Button variant="outline" className="!py-1.5 !px-3 text-xs" onClick={() => setOutcomeFor(q)}>
                           Decide
                         </Button>

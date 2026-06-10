@@ -19,6 +19,7 @@ function managerPublic(m) {
     is_admin: m.is_admin || 0,
     is_primary_admin: m.is_primary_admin || 0,
     permissions: JSON.parse(m.permissions || '[]'),
+    role: m.role || 'procurement_manager',
   };
 }
 

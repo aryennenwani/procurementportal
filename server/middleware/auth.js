@@ -15,7 +15,7 @@ function requireAuth(req, res, next) {
     const payload = jwt.verify(token, JWT_SECRET);
     // Fetch fresh data on every request so permission/role changes take effect immediately.
     const row = db.prepare(
-      'SELECT id, email, name, is_admin, is_primary_admin, permissions FROM managers WHERE id = ?'
+      'SELECT id, email, name, is_admin, is_primary_admin, permissions, role FROM managers WHERE id = ?'
     ).get(payload.id);
     if (!row) return res.status(401).json({ error: 'Account not found. Please log in again.' });
 
@@ -26,6 +26,7 @@ function requireAuth(req, res, next) {
       is_admin: row.is_admin || 0,
       is_primary_admin: row.is_primary_admin || 0,
       permissions: JSON.parse(row.permissions || '[]'),
+      role: row.role || 'procurement_manager',
     };
     next();
   } catch (err) {
@@ -56,4 +57,12 @@ function requirePermission(permission) {
   };
 }
 
-module.exports = { requireAuth, requireAdmin, requirePrimaryAdmin, requirePermission, JWT_SECRET };
+// Factory managers can only raise requirements — assigning vendors and deciding
+// quotation outcomes is restricted to procurement managers and admins.
+function requireProcurementManager(req, res, next) {
+  if (req.manager?.is_admin) return next();
+  if (req.manager?.role !== 'factory_manager') return next();
+  return res.status(403).json({ error: 'Factory managers cannot perform this action.' });
+}
+
+module.exports = { requireAuth, requireAdmin, requirePrimaryAdmin, requirePermission, requireProcurementManager, JWT_SECRET };

@@ -59,6 +59,7 @@ export function AuthProvider({ children }) {
         isAuthenticated: !!token,
         isAdmin: !!(manager?.is_admin),
         isPrimaryAdmin: !!(manager?.is_primary_admin),
+        isFactoryManager: !manager?.is_admin && manager?.role === 'factory_manager',
       }}
     >
       {children}

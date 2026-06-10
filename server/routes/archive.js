@@ -28,7 +28,8 @@ router.get(
     let sql = `
       SELECT q.*, v.company_name AS vendor_name, v.category AS vendor_category,
              r.title AS requirement_title, r.unit, r.status AS requirement_status,
-             qo.outcome, qo.rejection_reason, qo.decided_at
+             qo.outcome, qo.rejection_reason, qo.decided_at,
+             (SELECT COUNT(*) FROM quotations q2 WHERE q2.requirement_id = q.requirement_id AND q2.is_latest = 1) AS quote_count
       FROM quotations q
       JOIN vendors v ON v.id = q.vendor_id
       JOIN requirements r ON r.id = q.requirement_id
@@ -69,12 +70,20 @@ router.get(
 
     const rows = db.prepare(sql).all(...params);
 
-    const proposals = rows.map((q) => ({
-      ...q,
-      submitted_at_ist: toIST(q.submitted_at),
-      decided_at_ist: q.decided_at ? toIST(q.decided_at) : null,
-      status: q.outcome === 'won' ? 'Won' : q.outcome === 'not_selected' ? 'Not Selected' : 'Pending Decision',
-    }));
+    // Bid amounts are hidden until at least 2 quotations were received for that
+    // requirement — keep that consistent in the archive view.
+    const proposals = rows.map((q) => {
+      const bidsHidden = q.quote_count < 2;
+      return {
+        ...q,
+        per_unit_price: bidsHidden ? null : q.per_unit_price,
+        total_value: bidsHidden ? null : q.total_value,
+        bids_hidden: bidsHidden,
+        submitted_at_ist: toIST(q.submitted_at),
+        decided_at_ist: q.decided_at ? toIST(q.decided_at) : null,
+        status: q.outcome === 'won' ? 'Won' : q.outcome === 'not_selected' ? 'Not Selected' : 'Pending Decision',
+      };
+    });
 
     res.json({ count: proposals.length, proposals });
   }

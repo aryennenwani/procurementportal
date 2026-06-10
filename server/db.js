@@ -168,6 +168,9 @@ ensureColumn('partiality_flags', 'metric_value', 'REAL');
 ensureColumn('managers', 'is_admin', 'INTEGER NOT NULL DEFAULT 0');
 ensureColumn('managers', 'is_primary_admin', 'INTEGER NOT NULL DEFAULT 0');
 ensureColumn('managers', 'permissions', "TEXT NOT NULL DEFAULT '[]'");
+// 'procurement_manager' (raise requirements, assign vendors, decide winners) or
+// 'factory_manager' (raise requirements only). Admins are unaffected by this field.
+ensureColumn('managers', 'role', "TEXT NOT NULL DEFAULT 'procurement_manager'");
 
 // On first migration, promote the earliest manager to admin so there is always one.
 const adminCount = db.prepare('SELECT COUNT(*) AS cnt FROM managers WHERE is_admin = 1').get().cnt;

@@ -3,15 +3,20 @@ import { Plus, X, UserCog, Trash2, Shield, ShieldCheck, Settings2 } from 'lucide
 import api, { apiErrorMessage } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
-import { Card, PageLoader, Button, Input, EmptyState } from '../../components/Common';
+import { Card, PageLoader, Button, Input, Select, EmptyState } from '../../components/Common';
 
-const EMPTY_FORM = { name: '', email: '', password: '' };
+const EMPTY_FORM = { name: '', email: '', password: '', role: 'procurement_manager' };
 
 const PERMISSION_LABELS = {
   view_compliance: 'Compliance',
   view_audit: 'Audit Log',
 };
 const ALL_PERMISSIONS = Object.keys(PERMISSION_LABELS);
+
+const ROLE_LABELS = {
+  procurement_manager: 'Procurement Manager',
+  factory_manager: 'Factory Manager',
+};
 
 function AddManagerModal({ onClose, onCreated }) {
   const [form, setForm] = useState(EMPTY_FORM);
@@ -53,7 +58,12 @@ function AddManagerModal({ onClose, onCreated }) {
           <Input label="Full name" required value={form.name} onChange={set('name')} error={errors.name} placeholder="e.g. Priya Sharma" />
           <Input label="Email address" type="email" required value={form.email} onChange={set('email')} error={errors.email} placeholder="priya@company.com" />
           <Input label="Password" type="password" required value={form.password} onChange={set('password')} error={errors.password} placeholder="Minimum 8 characters" />
+          <Select label="Role" value={form.role} onChange={set('role')}>
+            <option value="procurement_manager">Procurement Manager</option>
+            <option value="factory_manager">Factory Manager</option>
+          </Select>
           <p className="text-xs text-gray-400">
+            Factory managers can raise requirements only. Procurement managers can also assign vendors and decide winning bids.
             New managers cannot view Compliance or Audit Log unless you grant access via the permissions editor.
           </p>
           <div className="flex justify-end gap-3 pt-1">
@@ -138,6 +148,7 @@ export default function ManagersList() {
   const [permTarget, setPermTarget] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [togglingAdmin, setTogglingAdmin] = useState(null);
+  const [changingRole, setChangingRole] = useState(null);
   const toast = useToast();
   const { isPrimaryAdmin, manager: self } = useAuth();
 
@@ -180,6 +191,20 @@ export default function ManagersList() {
       toast.error(apiErrorMessage(err, `Could not ${action} manager.`));
     } finally {
       setTogglingAdmin(null);
+    }
+  };
+
+  const changeRole = async (m, role) => {
+    if (role === m.role) return;
+    setChangingRole(m.id);
+    try {
+      const { data } = await api.patch(`/managers/${m.id}/role`, { role });
+      toast.success(`${m.name} is now a ${ROLE_LABELS[role]}.`);
+      setManagers((prev) => prev.map((x) => x.id === m.id ? data.manager : x));
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Could not update role.'));
+    } finally {
+      setChangingRole(null);
     }
   };
 
@@ -237,7 +262,15 @@ export default function ManagersList() {
                     ) : m.is_admin ? (
                       <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#1A56D6]/10 text-[#1A56D6]">Admin</span>
                     ) : (
-                      <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">Manager</span>
+                      <select
+                        value={m.role || 'procurement_manager'}
+                        onChange={(e) => changeRole(m, e.target.value)}
+                        disabled={changingRole === m.id}
+                        className="text-xs font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-600 border-none focus:outline-none focus:ring-2 focus:ring-[#1A56D6]/40 disabled:opacity-50"
+                      >
+                        <option value="procurement_manager">Procurement Manager</option>
+                        <option value="factory_manager">Factory Manager</option>
+                      </select>
                     )}
                   </td>
                   <td className="px-5 py-3.5">

@@ -112,7 +112,9 @@ export default function Archive() {
                     <p className="text-xs text-gray-500">{p.vendor_category}</p>
                   </td>
                   <td className="px-4 py-3.5 text-[#1E2B4A]">{p.requirement_title}</td>
-                  <td className="px-4 py-3.5 text-right text-[#1E2B4A] font-medium">₹{p.per_unit_price.toLocaleString('en-IN')} / {p.unit}</td>
+                  <td className="px-4 py-3.5 text-right text-[#1E2B4A] font-medium">
+                    {p.per_unit_price !== null ? `₹${p.per_unit_price.toLocaleString('en-IN')} / ${p.unit}` : <span className="text-gray-400 italic text-xs">Hidden</span>}
+                  </td>
                   <td className="px-4 py-3.5 text-gray-500 whitespace-nowrap">{p.submitted_at_ist}</td>
                   <td className="px-4 py-3.5">
                     <OutcomeBadge outcome={statusLabel(p.status)} />

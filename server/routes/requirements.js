@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, param, validationResult } = require('express-validator');
 const db = require('../db');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireProcurementManager } = require('../middleware/auth');
 const { recordAudit } = require('../middleware/audit');
 const { runDetection } = require('../services/partiality');
 const { sendVendorAssignmentEmail, notifyManager } = require('../services/mailer');
@@ -138,6 +138,7 @@ router.patch(
 
 router.post(
   '/:id/assign',
+  requireProcurementManager,
   [
     param('id').isInt().withMessage('Invalid requirement id'),
     body('vendor_ids').isArray({ min: 1 }).withMessage('At least one vendor must be selected'),
@@ -179,7 +180,13 @@ router.post(
     runDetection(req.params.id);
 
     // Fire and forget — each newly-assigned vendor receives their secure portal link by email.
-    newlyAssignedVendors.forEach((vendor) => sendVendorAssignmentEmail({ vendor, requirement }));
+    // Sent sequentially with a delay to stay under Resend's free-tier rate limit (2 req/sec).
+    (async () => {
+      for (const vendor of newlyAssignedVendors) {
+        await sendVendorAssignmentEmail({ vendor, requirement });
+        await new Promise((resolve) => setTimeout(resolve, 600));
+      }
+    })();
 
     const vendors = db.prepare(`
       SELECT v.* FROM vendors v

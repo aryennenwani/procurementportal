@@ -27,24 +27,26 @@ export default function Overview() {
   const [score, setScore] = useState(null);
   const [flags, setFlags] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { manager } = useAuth();
+  const { manager, hasPermission } = useAuth();
   const toast = useToast();
+  const canViewCompliance = hasPermission('view_compliance');
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       try {
-        const [reqRes, vendorRes, scoreRes, flagsRes] = await Promise.all([
-          api.get('/requirements'),
-          api.get('/vendors'),
-          api.get('/compliance/score'),
-          api.get('/compliance/flags'),
-        ]);
+        const calls = [api.get('/requirements'), api.get('/vendors')];
+        if (canViewCompliance) {
+          calls.push(api.get('/compliance/score'), api.get('/compliance/flags'));
+        }
+        const [reqRes, vendorRes, scoreRes, flagsRes] = await Promise.all(calls);
         if (cancelled) return;
         setRequirements(reqRes.data.requirements);
         setVendors(vendorRes.data.vendors);
-        setScore(scoreRes.data);
-        setFlags(flagsRes.data.flags.filter((f) => !f.resolved).slice(0, 5));
+        if (canViewCompliance) {
+          setScore(scoreRes.data);
+          setFlags(flagsRes.data.flags.filter((f) => !f.resolved).slice(0, 5));
+        }
       } catch (err) {
         toast.error(apiErrorMessage(err, 'Could not load dashboard data.'));
       } finally {
@@ -53,7 +55,7 @@ export default function Overview() {
     }
     load();
     return () => { cancelled = true; };
-  }, [toast]);
+  }, [toast, canViewCompliance]);
 
   if (loading) return <PageLoader />;
 
@@ -75,8 +77,8 @@ export default function Overview() {
         <StatCard icon={TrendingUp}    label="Quotations received" value={totalQuotations} accent="bg-violet-50 text-violet-600" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <Card className="lg:col-span-2 p-6">
+      <div className={`grid grid-cols-1 ${canViewCompliance ? 'lg:grid-cols-3' : ''} gap-5`}>
+        <Card className={`${canViewCompliance ? 'lg:col-span-2' : ''} p-6`}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-[#1E2B4A]">Recent requirements</h2>
             <Link to="/dashboard/requirements" className="text-sm text-[#1A56D6] hover:underline flex items-center gap-1">
@@ -104,6 +106,7 @@ export default function Overview() {
           </div>
         </Card>
 
+        {canViewCompliance && (
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-[#1E2B4A]">Procurement health</h2>
@@ -145,6 +148,7 @@ export default function Overview() {
             </div>
           </div>
         </Card>
+        )}
       </div>
     </div>
   );
