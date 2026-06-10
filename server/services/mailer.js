@@ -33,7 +33,7 @@ function layout(bodyHtml, ctaLabel, ctaUrl) {
   </div>`;
 }
 
-async function sendMail({ to, subject, html, context }) {
+async function sendMail({ to, subject, html, text, context }) {
   const client = getResend();
   if (!client) {
     console.warn(`[email] SKIPPED — RESEND_API_KEY not configured. Would have sent "${subject}" to ${to}`);
@@ -52,9 +52,11 @@ async function sendMail({ to, subject, html, context }) {
   try {
     const { error } = await client.emails.send({
       from: 'Shivtek Spechemi <hello@cardinaldigitalsolutions.in>',
+      replyTo: 'hello@cardinaldigitalsolutions.in',
       to: [to],
       subject,
       html,
+      text: text || undefined,
     });
     if (error) throw new Error(error.message);
     console.log(`[email] Sent OK → ${to}`);
@@ -89,10 +91,26 @@ async function sendVendorAssignmentEmail({ vendor, requirement }) {
     </p>
   `, 'View & Submit Quotation', portalUrl);
 
+  const text = [
+    `Hello ${vendor.contact_person},`,
+    ``,
+    `${vendor.company_name} has been assigned to submit a quotation for the following requirement:`,
+    ``,
+    `Item: ${requirement.title}`,
+    `Quantity: ${requirement.quantity} ${requirement.unit}`,
+    requirement.grade ? `Grade: ${requirement.grade}` : null,
+    `Deadline: ${toIST(requirement.deadline)}`,
+    ``,
+    `View and submit your quotation here: ${portalUrl}`,
+    ``,
+    `This is an automated message from Shivtek Spechemi Industries Ltd. Please do not reply to this email.`,
+  ].filter(Boolean).join('\n');
+
   await sendMail({
     to: vendor.email,
     subject: `New requirement assigned: ${requirement.title}`,
     html,
+    text,
     context: { targetType: 'vendor', targetId: vendor.id },
   });
 }
@@ -106,10 +124,19 @@ async function sendQuotationNotificationEmail({ manager, vendor, requirement, am
     </p>
   `, 'View Requirement', `${FRONTEND_URL}/dashboard/requirements/${requirement.id}`);
 
+  const text = [
+    `${revised ? 'Quotation revised' : 'Quotation received'} from ${vendor.company_name} for ${requirement.title} — Rs. ${Number(amount).toLocaleString('en-IN')}.`,
+    ``,
+    `View the requirement here: ${FRONTEND_URL}/dashboard/requirements/${requirement.id}`,
+    ``,
+    `This is an automated message from Shivtek Spechemi Industries Ltd. Please do not reply to this email.`,
+  ].join('\n');
+
   await sendMail({
     to: manager.email,
     subject: `${revised ? 'Quotation revised' : 'Quotation received'} from ${vendor.company_name} for ${requirement.title} — ₹${Number(amount).toLocaleString('en-IN')}`,
     html,
+    text,
     context: { targetType: 'requirement', targetId: requirement.id },
   });
 }
