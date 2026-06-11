@@ -73,12 +73,14 @@ router.get('/flags', (req, res) => {
 
   const flags = db.prepare(`
     SELECT pf.*, r.title AS requirement_title, r.status AS requirement_status, v.company_name AS vendor_name,
-           wqo.decided_at AS decided_at
+           wqo.decided_at AS decided_at, wv.company_name AS winning_vendor_name, wdm.name AS decided_by_name
     FROM partiality_flags pf
     JOIN requirements r ON r.id = pf.requirement_id
     LEFT JOIN vendors v ON v.id = pf.vendor_id
     LEFT JOIN quotations wq ON wq.requirement_id = r.id AND wq.is_latest = 1
     LEFT JOIN quotation_outcomes wqo ON wqo.quotation_id = wq.id AND wqo.outcome = 'won'
+    LEFT JOIN vendors wv ON wv.id = wq.vendor_id
+    LEFT JOIN managers wdm ON wdm.id = wqo.decided_by
     ORDER BY
       CASE pf.risk_level WHEN 'HIGH' THEN 0 WHEN 'MEDIUM' THEN 1 ELSE 2 END,
       pf.detected_at DESC
@@ -210,12 +212,14 @@ router.get('/suspicious-transactions', (req, res) => {
 
   const flags = db.prepare(`
     SELECT pf.*, r.title AS requirement_title, r.status AS requirement_status, v.company_name AS vendor_name,
-           wqo.decided_at AS decided_at
+           wqo.decided_at AS decided_at, wv.company_name AS winning_vendor_name, wdm.name AS decided_by_name
     FROM partiality_flags pf
     JOIN requirements r ON r.id = pf.requirement_id
     LEFT JOIN vendors v ON v.id = pf.vendor_id
     LEFT JOIN quotations wq ON wq.requirement_id = r.id AND wq.is_latest = 1
     LEFT JOIN quotation_outcomes wqo ON wqo.quotation_id = wq.id AND wqo.outcome = 'won'
+    LEFT JOIN vendors wv ON wv.id = wq.vendor_id
+    LEFT JOIN managers wdm ON wdm.id = wqo.decided_by
     WHERE pf.risk_level = 'HIGH'
     ORDER BY pf.detected_at DESC
   `).all();
@@ -241,10 +245,15 @@ function loadAuditReportData() {
 
   const score = computeHealthScore();
   const flags = db.prepare(`
-    SELECT pf.*, r.title AS requirement_title, v.company_name AS vendor_name
+    SELECT pf.*, r.title AS requirement_title, r.status AS requirement_status, v.company_name AS vendor_name,
+           wqo.decided_at AS decided_at, wv.company_name AS winning_vendor_name, wdm.name AS decided_by_name
     FROM partiality_flags pf
     JOIN requirements r ON r.id = pf.requirement_id
     LEFT JOIN vendors v ON v.id = pf.vendor_id
+    LEFT JOIN quotations wq ON wq.requirement_id = r.id AND wq.is_latest = 1
+    LEFT JOIN quotation_outcomes wqo ON wqo.quotation_id = wq.id AND wqo.outcome = 'won'
+    LEFT JOIN vendors wv ON wv.id = wq.vendor_id
+    LEFT JOIN managers wdm ON wdm.id = wqo.decided_by
     ORDER BY CASE pf.risk_level WHEN 'HIGH' THEN 0 WHEN 'MEDIUM' THEN 1 ELSE 2 END, pf.detected_at DESC
   `).all();
   const leaderboard = db.prepare(`
@@ -260,6 +269,35 @@ function loadAuditReportData() {
   `).all().map((v) => ({ ...v, win_rate: v.total_bids > 0 ? Math.round((v.wins / v.total_bids) * 100) : 0 }));
 
   return { score, flags, leaderboard };
+}
+
+const RISK_RANK = { HIGH: 3, MEDIUM: 2, LOW: 1 };
+
+// Groups flag rows into one entry per requirement-instance (item + decision date), mirroring
+// the Compliance page UI — avoids repeating the item/risk-type labels for every flag and
+// keeps two requirements that share an item name as distinct entries.
+function groupFlagsByInstance(flags) {
+  const map = new Map();
+  for (const f of flags) {
+    if (!map.has(f.requirement_id)) {
+      map.set(f.requirement_id, {
+        requirement_title: f.requirement_title,
+        requirement_status: f.requirement_status,
+        decided_at_ist: f.decided_at ? toIST(f.decided_at) : null,
+        winning_vendor_name: f.winning_vendor_name,
+        decided_by_name: f.decided_by_name,
+        maxRisk: f.risk_level,
+        byRisk: new Map(),
+      });
+    }
+    const group = map.get(f.requirement_id);
+    if (RISK_RANK[f.risk_level] > RISK_RANK[group.maxRisk]) group.maxRisk = f.risk_level;
+    if (!group.byRisk.has(f.risk_level)) group.byRisk.set(f.risk_level, new Map());
+    const typeMap = group.byRisk.get(f.risk_level);
+    if (!typeMap.has(f.flag_type)) typeMap.set(f.flag_type, new Set());
+    typeMap.get(f.flag_type).add(f.description);
+  }
+  return [...map.values()];
 }
 
 router.get('/report/csv', (req, res) => {
@@ -332,16 +370,31 @@ router.get('/report/pdf', (req, res) => {
   doc.fontSize(9).fillColor('#666').text(`Generated: ${toIST(new Date().toISOString())}`);
   doc.moveDown(1);
 
-  doc.fontSize(13).fillColor('#1C1C1E').text(`Flagged Requirements (${flags.length})`, { underline: true });
-  if (flags.length === 0) {
+  const flagGroups = groupFlagsByInstance(flags);
+  doc.fontSize(13).fillColor('#1C1C1E').text(`Flagged Requirements (${flagGroups.length})`, { underline: true });
+  if (flagGroups.length === 0) {
     doc.moveDown(0.4).fontSize(10).fillColor('#666').text('No partiality flags have been detected.');
   } else {
-    flags.forEach((f) => {
-      const color = f.risk_level === 'HIGH' ? '#a33' : f.risk_level === 'MEDIUM' ? '#a87a00' : '#666';
-      doc.moveDown(0.4);
-      doc.fontSize(10).fillColor(color).text(`[${f.risk_level}] ${f.requirement_title} — ${f.flag_type}`);
-      doc.fontSize(9).fillColor('#444').text(`   ${f.description}`);
-      doc.fillColor('#888').text(`   Detected: ${toIST(f.detected_at)}${f.vendor_name ? `   |   Vendor: ${f.vendor_name}` : ''}`);
+    flagGroups.forEach((g, idx) => {
+      const color = g.maxRisk === 'HIGH' ? '#a33' : g.maxRisk === 'MEDIUM' ? '#a87a00' : '#666';
+      doc.moveDown(idx === 0 ? 0.4 : 0.7);
+      doc.fontSize(10).fillColor(color).text(`[${g.maxRisk}] ${g.requirement_title}${g.decided_at_ist ? `  —  ${g.decided_at_ist}` : ''}`);
+      doc.fontSize(9).fillColor('#888').text(
+        g.winning_vendor_name
+          ? `   Won by ${g.winning_vendor_name}${g.decided_by_name ? `  •  Decided by ${g.decided_by_name}` : ''}`
+          : `   Status: ${g.requirement_status}`
+      );
+      for (const risk of ['HIGH', 'MEDIUM', 'LOW']) {
+        const typeMap = g.byRisk.get(risk);
+        if (!typeMap) continue;
+        for (const [flagType, descriptions] of typeMap) {
+          doc.moveDown(0.2);
+          doc.fontSize(9).fillColor(color).text(`   [${risk}] ${flagType}`);
+          for (const description of descriptions) {
+            doc.fontSize(9).fillColor('#444').text(`      • ${description}`);
+          }
+        }
+      }
     });
   }
 

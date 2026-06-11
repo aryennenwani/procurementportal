@@ -220,6 +220,8 @@ function groupFlagsByInstance(flags) {
         requirement_title: f.requirement_title,
         requirement_status: f.requirement_status,
         decided_at_ist: f.decided_at_ist,
+        winning_vendor_name: f.winning_vendor_name,
+        decided_by_name: f.decided_by_name,
         maxRisk: f.risk_level,
         byRisk: new Map(),
       });
@@ -254,9 +256,12 @@ function FlaggedRequirements({ flags, onInvestigate }) {
               <div className="flex items-center gap-2 flex-wrap">
                 <RiskBadge level={g.maxRisk} />
                 <p className="font-medium text-[#1E2B4A] text-sm">{g.requirement_title}</p>
+                {g.decided_at_ist && <span className="text-xs text-gray-400">• {g.decided_at_ist}</span>}
               </div>
               <p className="text-xs text-gray-400 mt-1">
-                {g.decided_at_ist ? `Bid awarded ${g.decided_at_ist}` : `Status: ${g.requirement_status}`}
+                {g.winning_vendor_name
+                  ? <>Won by <span className="text-gray-600 font-medium">{g.winning_vendor_name}</span>{g.decided_by_name && <> • Decided by <span className="text-gray-600 font-medium">{g.decided_by_name}</span></>}</>
+                  : `Status: ${g.requirement_status}`}
               </p>
             </div>
             <Button variant="outline" className="!py-1.5 !px-3 text-xs shrink-0" onClick={() => onInvestigate(g)}>
@@ -299,6 +304,8 @@ function groupSuspicious(transactions) {
         requirement_id: t.requirement_id,
         requirement_title: t.requirement_title,
         decided_at_ist: t.decided_at_ist,
+        winning_vendor_name: t.winning_vendor_name,
+        decided_by_name: t.decided_by_name,
         financial_exposure: t.financial_exposure,
         flagTypes: new Map(),
       });
@@ -334,9 +341,14 @@ function SuspiciousTransactions({ transactions, onInvestigate }) {
         <Card key={g.requirement_id} className="p-4 border-red-100">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="min-w-0">
-              <p className="font-medium text-[#1E2B4A] text-sm">{g.requirement_title}</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-medium text-[#1E2B4A] text-sm">{g.requirement_title}</p>
+                {g.decided_at_ist && <span className="text-xs text-gray-400">• {g.decided_at_ist}</span>}
+              </div>
               <p className="text-xs text-gray-400 mt-1">
-                {g.decided_at_ist ? `Bid awarded ${g.decided_at_ist}` : 'Decision pending'}
+                {g.winning_vendor_name
+                  ? <>Won by <span className="text-gray-600 font-medium">{g.winning_vendor_name}</span>{g.decided_by_name && <> • Decided by <span className="text-gray-600 font-medium">{g.decided_by_name}</span></>}</>
+                  : 'Decision pending'}
               </p>
             </div>
             <Button variant="outline" className="!py-1.5 !px-3 text-xs shrink-0" onClick={() => onInvestigate(g)}>
