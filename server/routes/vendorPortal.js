@@ -19,7 +19,10 @@ const LOCKOUT_WINDOW_MS = 60 * 60 * 1000;
 
 const getVendorByToken = db.prepare('SELECT * FROM vendors WHERE unique_token = ?');
 const getRequirementById = db.prepare('SELECT * FROM requirements WHERE id = ?');
-const getManagerById = db.prepare('SELECT * FROM managers WHERE id = ?');
+const getQuoteCount = db.prepare('SELECT COUNT(*) AS cnt FROM quotations WHERE requirement_id = ? AND is_latest = 1');
+// Bid notifications go to admins and procurement managers — factory managers cannot act on
+// quotations, so they are excluded even if they raised the requirement.
+const getQuotationRecipients = db.prepare("SELECT * FROM managers WHERE is_admin = 1 OR role = 'procurement_manager'");
 
 const insertActivity = db.prepare(`
   INSERT INTO vendor_activity (vendor_id, action, requirement_id, ip_address)
@@ -278,16 +281,17 @@ router.post(
 
     runDetection(requirement_id);
 
-    const manager = getManagerById.get(requirement.created_by);
-    if (manager) {
+    const hideAmount = getQuoteCount.get(requirement_id).cnt < 2;
+    const amountText = hideAmount ? 'Hidden until 2 bids are received' : `₹${Number(per_unit_price).toLocaleString('en-IN')}`;
+    for (const manager of getQuotationRecipients.all()) {
       notifyManager({
         managerId: manager.id,
         title: 'New quotation received',
-        body: `Quotation received from ${vendor.company_name} for ${requirement.title} — ₹${Number(per_unit_price).toLocaleString('en-IN')}`,
+        body: `Quotation received from ${vendor.company_name} for ${requirement.title} — ${amountText}`,
         targetType: 'requirement',
         targetId: requirement_id,
       });
-      sendQuotationNotificationEmail({ manager, vendor, requirement, amount: per_unit_price, revised: false });
+      sendQuotationNotificationEmail({ manager, vendor, requirement, amount: per_unit_price, revised: false, hideAmount });
     }
 
     const quotation = db.prepare('SELECT * FROM quotations WHERE id = ?').get(info.lastInsertRowid);
@@ -379,16 +383,19 @@ router.post(
 
     runDetection(requirement_id);
 
-    const manager = getManagerById.get(requirement.created_by);
-    if (manager) {
+    const reviseHideAmount = getQuoteCount.get(requirement_id).cnt < 2;
+    const reviseAmountText = reviseHideAmount
+      ? 'Hidden until 2 bids are received'
+      : `new price ₹${Number(per_unit_price).toLocaleString('en-IN')} (was ₹${Number(oldPrice).toLocaleString('en-IN')})`;
+    for (const manager of getQuotationRecipients.all()) {
       notifyManager({
         managerId: manager.id,
         title: 'Quotation revised',
-        body: `Vendor ${vendor.company_name} revised their offer for ${requirement.title} — new price ₹${Number(per_unit_price).toLocaleString('en-IN')} (was ₹${Number(oldPrice).toLocaleString('en-IN')})`,
+        body: `Vendor ${vendor.company_name} revised their offer for ${requirement.title} — ${reviseAmountText}`,
         targetType: 'requirement',
         targetId: requirement_id,
       });
-      sendQuotationNotificationEmail({ manager, vendor, requirement, amount: per_unit_price, revised: true });
+      sendQuotationNotificationEmail({ manager, vendor, requirement, amount: per_unit_price, revised: true, hideAmount: reviseHideAmount });
     }
 
     const quotation = db.prepare('SELECT * FROM quotations WHERE id = ?').get(info.lastInsertRowid);

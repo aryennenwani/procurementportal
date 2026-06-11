@@ -115,17 +115,24 @@ async function sendVendorAssignmentEmail({ vendor, requirement }) {
   });
 }
 
-async function sendQuotationNotificationEmail({ manager, vendor, requirement, amount, revised = false }) {
+async function sendQuotationNotificationEmail({ manager, vendor, requirement, amount, revised = false, hideAmount = false }) {
+  const amountHtml = hideAmount
+    ? 'Hidden until at least 2 bids are received'
+    : `₹${Number(amount).toLocaleString('en-IN')}`;
+  const amountSubject = hideAmount
+    ? 'amount hidden until 2 bids received'
+    : `₹${Number(amount).toLocaleString('en-IN')}`;
+
   const html = layout(`
     <h1 style="font-size:20px;margin:0 0 16px;">${revised ? 'Quotation revised' : 'New quotation received'}</h1>
     <p style="font-size:14px;line-height:1.6;margin:0;">
       ${revised ? 'Quotation revised' : 'Quotation received'} from <strong>${vendor.company_name}</strong> for
-      <strong>${requirement.title}</strong> — ₹${Number(amount).toLocaleString('en-IN')}.
+      <strong>${requirement.title}</strong> — ${amountHtml}.
     </p>
   `, 'View Requirement', `${FRONTEND_URL}/dashboard/requirements/${requirement.id}`);
 
   const text = [
-    `${revised ? 'Quotation revised' : 'Quotation received'} from ${vendor.company_name} for ${requirement.title} — Rs. ${Number(amount).toLocaleString('en-IN')}.`,
+    `${revised ? 'Quotation revised' : 'Quotation received'} from ${vendor.company_name} for ${requirement.title} — ${hideAmount ? 'amount hidden until at least 2 bids are received' : `Rs. ${Number(amount).toLocaleString('en-IN')}`}.`,
     ``,
     `View the requirement here: ${FRONTEND_URL}/dashboard/requirements/${requirement.id}`,
     ``,
@@ -134,7 +141,7 @@ async function sendQuotationNotificationEmail({ manager, vendor, requirement, am
 
   await sendMail({
     to: manager.email,
-    subject: `${revised ? 'Quotation revised' : 'Quotation received'} from ${vendor.company_name} for ${requirement.title} — ₹${Number(amount).toLocaleString('en-IN')}`,
+    subject: `${revised ? 'Quotation revised' : 'Quotation received'} from ${vendor.company_name} for ${requirement.title} — ${amountSubject}`,
     html,
     text,
     context: { targetType: 'requirement', targetId: requirement.id },

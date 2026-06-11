@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ClipboardList, Users, Archive, ShieldAlert, ScrollText,
-  Menu, X, LogOut, UserCog, ChevronLeft, KeyRound,
+  Menu, X, LogOut, UserCog, ChevronLeft, KeyRound, Package,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -98,17 +98,18 @@ export default function DashboardLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showChangePwd, setShowChangePwd] = useState(false);
-  const { manager, logout, isAdmin, hasPermission } = useAuth();
+  const { manager, logout, isAdmin, isFactoryManager, hasPermission } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
   const NAV_ITEMS = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
     { to: '/dashboard/requirements', label: 'Requirements', icon: ClipboardList },
-    { to: '/dashboard/vendors', label: 'Vendors', icon: Users },
+    ...(isFactoryManager ? [] : [{ to: '/dashboard/vendors', label: 'Vendors', icon: Users }]),
     { to: '/dashboard/archive', label: 'Proposal Archive', icon: Archive },
     ...(hasPermission('view_compliance') ? [{ to: '/dashboard/compliance', label: 'Compliance', icon: ShieldAlert }] : []),
     ...(hasPermission('view_audit') ? [{ to: '/dashboard/audit-log', label: 'Audit Log', icon: ScrollText }] : []),
+    ...(isAdmin ? [{ to: '/dashboard/items', label: 'Item Master', icon: Package }] : []),
     ...(isAdmin ? [{ to: '/dashboard/managers', label: 'Managers', icon: UserCog }] : []),
   ];
 

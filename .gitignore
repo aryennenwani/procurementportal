@@ -4,6 +4,8 @@ client/dist/
 server/data/
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
 .env
 *.log
 client/.env

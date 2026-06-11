@@ -65,18 +65,28 @@ router.get('/score', (req, res) => {
   res.json({ score, label });
 });
 
+// Each flag is enriched with the winning decision date for its requirement (when available) —
+// this lets the client group flags by "item + decision date" so that two different
+// requirements that happen to share an item name don't get merged into one entity.
 router.get('/flags', (req, res) => {
   refreshDetection();
 
   const flags = db.prepare(`
-    SELECT pf.*, r.title AS requirement_title, r.status AS requirement_status, v.company_name AS vendor_name
+    SELECT pf.*, r.title AS requirement_title, r.status AS requirement_status, v.company_name AS vendor_name,
+           wqo.decided_at AS decided_at
     FROM partiality_flags pf
     JOIN requirements r ON r.id = pf.requirement_id
     LEFT JOIN vendors v ON v.id = pf.vendor_id
+    LEFT JOIN quotations wq ON wq.requirement_id = r.id AND wq.is_latest = 1
+    LEFT JOIN quotation_outcomes wqo ON wqo.quotation_id = wq.id AND wqo.outcome = 'won'
     ORDER BY
       CASE pf.risk_level WHEN 'HIGH' THEN 0 WHEN 'MEDIUM' THEN 1 ELSE 2 END,
       pf.detected_at DESC
-  `).all().map((f) => ({ ...f, detected_at_ist: toIST(f.detected_at) }));
+  `).all().map((f) => ({
+    ...f,
+    detected_at_ist: toIST(f.detected_at),
+    decided_at_ist: f.decided_at ? toIST(f.decided_at) : null,
+  }));
 
   res.json({ flags });
 });
@@ -119,20 +129,21 @@ router.get('/financial-exposure', (req, res) => {
   res.json({ total_exposure: totalExposure, requirement_count: breakdown.length, breakdown });
 });
 
-// Manager ↔ Vendor Collusion Matrix — how often each manager's requirements are won by each vendor.
+// Decider ↔ Vendor Collusion Matrix — how often each manager's *decisions* award the
+// requirement to each vendor. Keyed on who picked the winner (qo.decided_by), not who
+// raised the requirement — the requirement raiser has no influence over the outcome.
 router.get('/collusion-matrix', (req, res) => {
   refreshDetection();
 
   const rows = db.prepare(`
-    SELECT r.created_by AS manager_id, m.name AS manager_name,
+    SELECT qo.decided_by AS manager_id, m.name AS manager_name,
            q.vendor_id, v.company_name AS vendor_name,
            COUNT(*) AS wins
-    FROM requirements r
-    JOIN quotations q ON q.requirement_id = r.id
+    FROM quotations q
     JOIN quotation_outcomes qo ON qo.quotation_id = q.id AND qo.outcome = 'won'
-    JOIN managers m ON m.id = r.created_by
+    JOIN managers m ON m.id = qo.decided_by
     JOIN vendors v ON v.id = q.vendor_id
-    GROUP BY r.created_by, q.vendor_id
+    GROUP BY qo.decided_by, q.vendor_id
     ORDER BY m.name, wins DESC
   `).all();
 
@@ -198,10 +209,13 @@ router.get('/suspicious-transactions', (req, res) => {
   refreshDetection();
 
   const flags = db.prepare(`
-    SELECT pf.*, r.title AS requirement_title, r.status AS requirement_status, v.company_name AS vendor_name
+    SELECT pf.*, r.title AS requirement_title, r.status AS requirement_status, v.company_name AS vendor_name,
+           wqo.decided_at AS decided_at
     FROM partiality_flags pf
     JOIN requirements r ON r.id = pf.requirement_id
     LEFT JOIN vendors v ON v.id = pf.vendor_id
+    LEFT JOIN quotations wq ON wq.requirement_id = r.id AND wq.is_latest = 1
+    LEFT JOIN quotation_outcomes wqo ON wqo.quotation_id = wq.id AND wqo.outcome = 'won'
     WHERE pf.risk_level = 'HIGH'
     ORDER BY pf.detected_at DESC
   `).all();
@@ -211,7 +225,12 @@ router.get('/suspicious-transactions', (req, res) => {
     if (!exposureCache.has(f.requirement_id)) {
       exposureCache.set(f.requirement_id, computeOverpaymentForRequirement(f.requirement_id));
     }
-    return { ...f, detected_at_ist: toIST(f.detected_at), financial_exposure: exposureCache.get(f.requirement_id) };
+    return {
+      ...f,
+      detected_at_ist: toIST(f.detected_at),
+      decided_at_ist: f.decided_at ? toIST(f.decided_at) : null,
+      financial_exposure: exposureCache.get(f.requirement_id),
+    };
   });
 
   res.json({ transactions: enriched });

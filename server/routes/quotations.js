@@ -55,6 +55,11 @@ router.post(
       return res.status(409).json({ error: 'An outcome has already been recorded for this quotation and cannot be changed.' });
     }
 
+    const requirement = db.prepare('SELECT * FROM requirements WHERE id = ?').get(quotation.requirement_id);
+    if (requirement.status === 'Closed') {
+      return res.status(409).json({ error: 'This requirement is closed — no further decisions can be recorded.' });
+    }
+
     const { outcome, rejection_reason, justification } = req.body;
 
     let isLowest = true;
@@ -93,7 +98,6 @@ router.post(
             details: [{ path: 'justification', msg: `Justification must be at least ${MIN_JUSTIFICATION_LENGTH} characters long.` }],
           });
         }
-        const requirement = db.prepare('SELECT quantity FROM requirements WHERE id = ?').get(quotation.requirement_id);
         totalOverpaid = priceDifference * requirement.quantity;
       }
     }
@@ -156,6 +160,33 @@ router.post(
         },
         ip,
       });
+
+      // Once a winner is selected, every other bid is automatically closed out and the
+      // requirement closes — no further decisions can be made on it after this point.
+      if (outcome === 'won') {
+        const others = getQuotationsForRequirement.all(quotation.requirement_id).filter((q) => q.id !== quotation.id);
+        for (const other of others) {
+          if (getOutcome.get(other.id)) continue;
+          insertOutcome.run({
+            quotation_id: other.id,
+            outcome: 'not_selected',
+            rejection_reason: 'Automatically marked as not selected — another vendor was awarded this requirement.',
+            justification: null,
+            decided_by: req.manager.id,
+          });
+        }
+
+        db.prepare("UPDATE requirements SET status = 'Closed' WHERE id = ?").run(quotation.requirement_id);
+
+        recordAudit({
+          actionType: 'REQUIREMENT_STATUS_CHANGED',
+          performedBy,
+          targetType: 'requirement',
+          targetId: quotation.requirement_id,
+          details: { from: requirement.status, to: 'Closed', reason: 'Winning bid selected' },
+          ip,
+        });
+      }
 
       return info;
     });

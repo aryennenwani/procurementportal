@@ -153,6 +153,17 @@ CREATE TABLE IF NOT EXISTS vendor_verification_attempts (
   success INTEGER NOT NULL DEFAULT 0,
   attempted_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
+
+-- Item Master — the canonical, admin-managed list of item names. Requirements may only
+-- reference items from this table (selected via dropdown), so the same item never appears
+-- under slightly different spellings across requirements/price-history/collusion grouping.
+CREATE TABLE IF NOT EXISTS items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT UNIQUE NOT NULL,
+  category TEXT,
+  default_unit TEXT,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
 `);
 
 // Migration guard: existing database files created before this column set was added
@@ -187,6 +198,17 @@ if (!existingKashish) {
     .run(PRIMARY_ADMIN_EMAIL, bcrypt.hashSync('kashish123', 10), 'Kashish');
 } else {
   db.prepare('UPDATE managers SET is_admin = 1, is_primary_admin = 1 WHERE email = ?').run(PRIMARY_ADMIN_EMAIL);
+}
+
+// Seed the Item Master from any item names already used in existing requirements, so
+// historical requirements remain valid choices in the new dropdown after this migration.
+const itemCount = db.prepare('SELECT COUNT(*) AS cnt FROM items').get().cnt;
+if (itemCount === 0) {
+  const distinctTitles = db.prepare('SELECT DISTINCT title FROM requirements').all();
+  const insertItem = db.prepare('INSERT OR IGNORE INTO items (name) VALUES (?)');
+  for (const { title } of distinctTitles) {
+    if (title && title.trim()) insertItem.run(title.trim());
+  }
 }
 
 module.exports = db;

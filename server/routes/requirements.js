@@ -32,6 +32,11 @@ const listRequirements = db.prepare(`
 `);
 
 const getRequirementById = db.prepare('SELECT * FROM requirements WHERE id = ?');
+const getRequirementWithCreator = db.prepare(`
+  SELECT r.*, m.name AS created_by_name FROM requirements r
+  JOIN managers m ON m.id = r.created_by
+  WHERE r.id = ?
+`);
 const updateStatus = db.prepare('UPDATE requirements SET status = ? WHERE id = ?');
 const getVendorById = db.prepare('SELECT * FROM vendors WHERE id = ?');
 const assignVendor = db.prepare(`
@@ -39,6 +44,7 @@ const assignVendor = db.prepare(`
 `);
 
 const RISK_RANK_TO_LABEL = { 3: 'HIGH', 2: 'MEDIUM', 1: 'LOW' };
+const getItemByName = db.prepare('SELECT * FROM items WHERE name = ? COLLATE NOCASE');
 
 router.get('/', (req, res) => {
   const rows = listRequirements.all().map((r) => ({
@@ -66,7 +72,16 @@ router.post(
       return res.status(400).json({ error: 'Validation failed', details: errors.array() });
     }
 
-    const { title, description, quantity, unit, grade, deadline, notes } = req.body;
+    const { description, quantity, unit, grade, deadline, notes } = req.body;
+
+    // Item must come from the Item Master so the same item can never appear under
+    // different spellings across requirements, price history and collusion grouping.
+    const item = getItemByName.get(req.body.title.trim());
+    if (!item) {
+      return res.status(400).json({ error: 'Validation failed', details: [{ path: 'title', msg: 'Item must be selected from the item master list.' }] });
+    }
+    const title = item.name;
+
     const info = insertRequirement.run({
       title,
       description: description || null,
@@ -204,15 +219,16 @@ router.get('/:id/quotations', [param('id').isInt().withMessage('Invalid requirem
     return res.status(400).json({ error: 'Validation failed', details: errors.array() });
   }
 
-  const requirement = getRequirementById.get(req.params.id);
+  const requirement = getRequirementWithCreator.get(req.params.id);
   if (!requirement) return res.status(404).json({ error: 'Requirement not found.' });
 
   const quotations = db.prepare(`
     SELECT q.*, v.company_name, v.contact_person, v.email AS vendor_email,
-           qo.outcome, qo.rejection_reason, qo.decided_at
+           qo.outcome, qo.rejection_reason, qo.decided_at, dm.name AS decided_by_name
     FROM quotations q
     JOIN vendors v ON v.id = q.vendor_id
     LEFT JOIN quotation_outcomes qo ON qo.quotation_id = q.id
+    LEFT JOIN managers dm ON dm.id = qo.decided_by
     WHERE q.requirement_id = ? AND q.is_latest = 1
     ORDER BY q.per_unit_price ASC
   `).all(req.params.id);
@@ -244,8 +260,12 @@ router.get('/:id/quotations', [param('id').isInt().withMessage('Invalid requirem
   `).all(req.params.id);
 
   // Prices are hidden until at least 2 bids are in — prevents the manager from seeing
-  // a single quote and gaming subsequent vendors.
-  const bidsHidden = enriched.length < 2;
+  // a single quote and gaming subsequent vendors. Exception: if only one bid was received
+  // and the deadline is within 6 hours (or has passed), the price unhides automatically
+  // since there's no longer a meaningful chance for a second bid to arrive.
+  const hoursToDeadline = (new Date(requirement.deadline).getTime() - Date.now()) / (1000 * 60 * 60);
+  const singleBidUnhidden = enriched.length === 1 && hoursToDeadline <= 6;
+  const bidsHidden = enriched.length < 2 && !singleBidUnhidden;
   const safeQuotations = bidsHidden
     ? enriched.map((q) => ({
         ...q,

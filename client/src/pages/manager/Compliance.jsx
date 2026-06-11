@@ -107,7 +107,7 @@ function CollusionMatrix({ matrix }) {
       <table className="text-sm border-separate" style={{ borderSpacing: 0 }}>
         <thead>
           <tr>
-            <th className="text-left px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">Manager \ Vendor</th>
+            <th className="text-left px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">Decided By \ Vendor</th>
             {matrix.vendors.map((v) => (
               <th key={v.id} className="px-3 py-2 text-xs font-medium text-gray-500 text-center max-w-[120px]">
                 <span className="block truncate" title={v.name}>{v.name}</span>
@@ -131,7 +131,7 @@ function CollusionMatrix({ matrix }) {
                     <div
                       className={`rounded-lg px-2 py-1.5 ${cell.flagged ? 'text-red-800 font-semibold' : 'text-[#1E2B4A]'}`}
                       style={{ backgroundColor: bg }}
-                      title={`${cell.wins} win(s) • ${cell.win_share}% of this manager's awards`}
+                      title={`${cell.wins} win(s) • ${cell.win_share}% of this person's award decisions`}
                     >
                       <span className="block text-sm">{cell.wins}</span>
                       <span className="block text-[10px] opacity-70">{cell.win_share}%</span>
@@ -144,8 +144,8 @@ function CollusionMatrix({ matrix }) {
         </tbody>
       </table>
       <p className="text-xs text-gray-400 mt-3">
-        Cells highlighted in red mark a vendor winning more than 50% of a manager's awarded requirements
-        (with at least 3 decided) — the threshold the Repeat Winner Anomaly signal flags as possible collusion.
+        Cells highlighted in red mark a vendor winning more than 50% of the requirements awarded by that
+        decision-maker (with at least 3 decided) — the threshold the Repeat Winner Anomaly signal flags as possible collusion.
       </p>
     </div>
   );
@@ -204,35 +204,168 @@ function PriceHistoryChart({ items }) {
   );
 }
 
-function SuspiciousTransactions({ transactions, onInvestigate }) {
-  if (transactions.length === 0) {
-    return <Card><EmptyState icon={<AlertOctagon size={32} className="text-gray-300" />} title="No suspicious transactions" subtitle="No HIGH-risk flags are currently active. This view will populate the moment a high-risk pattern is detected." /></Card>;
+const RISK_ORDER = ['HIGH', 'MEDIUM', 'LOW'];
+const RISK_RANK = { HIGH: 3, MEDIUM: 2, LOW: 1 };
+
+// Groups raw per-flag rows into one card per requirement-instance (item + decision date),
+// so the same item name used across different requirements doesn't get merged into one
+// entity, and so repeated risk-type labels / duplicate descriptions collapse into a single
+// section per risk type.
+function groupFlagsByInstance(flags) {
+  const map = new Map();
+  for (const f of flags) {
+    if (!map.has(f.requirement_id)) {
+      map.set(f.requirement_id, {
+        requirement_id: f.requirement_id,
+        requirement_title: f.requirement_title,
+        requirement_status: f.requirement_status,
+        decided_at_ist: f.decided_at_ist,
+        maxRisk: f.risk_level,
+        byRisk: new Map(),
+      });
+    }
+    const group = map.get(f.requirement_id);
+    if (RISK_RANK[f.risk_level] > RISK_RANK[group.maxRisk]) group.maxRisk = f.risk_level;
+    if (!group.byRisk.has(f.risk_level)) group.byRisk.set(f.risk_level, new Map());
+    const typeMap = group.byRisk.get(f.risk_level);
+    if (!typeMap.has(f.flag_type)) typeMap.set(f.flag_type, new Set());
+    typeMap.get(f.flag_type).add(f.description);
   }
+  return [...map.values()];
+}
+
+function FlaggedRequirements({ flags, onInvestigate }) {
+  const groups = useMemo(() => groupFlagsByInstance(flags), [flags]);
+
+  if (groups.length === 0) {
+    return <Card><EmptyState
+      icon={<ShieldAlert size={32} className="text-gray-300" />}
+      title={flags.length === 0 ? 'No flags detected. Procurement health is clean.' : 'No flags found'}
+      subtitle={flags.length === 0 ? null : 'No partiality concerns have been detected for this filter.'}
+    /></Card>;
+  }
+
   return (
     <div className="space-y-3">
-      {transactions.map((t) => (
-        <Card key={t.id} className="p-4">
+      {groups.map((g) => (
+        <Card key={g.requirement_id} className="p-4">
           <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="flex items-start gap-3 min-w-0">
-              <RiskBadge level={t.risk_level} />
-              <div className="min-w-0">
-                <p className="font-medium text-[#1E2B4A] text-sm">{t.requirement_title}</p>
-                <p className="text-sm text-gray-500 mt-0.5">{t.description}</p>
-                <p className="text-xs text-gray-400 mt-1">{t.flag_type.replace(/_/g, ' ')} • Detected {t.detected_at_ist}</p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <RiskBadge level={g.maxRisk} />
+                <p className="font-medium text-[#1E2B4A] text-sm">{g.requirement_title}</p>
               </div>
+              <p className="text-xs text-gray-400 mt-1">
+                {g.decided_at_ist ? `Bid awarded ${g.decided_at_ist}` : `Status: ${g.requirement_status}`}
+              </p>
             </div>
-            <Button variant="outline" className="!py-1.5 !px-3 text-xs shrink-0" onClick={() => onInvestigate(t)}>
+            <Button variant="outline" className="!py-1.5 !px-3 text-xs shrink-0" onClick={() => onInvestigate(g)}>
               <Search size={13} /> Investigate
             </Button>
           </div>
-          {t.financial_exposure && t.financial_exposure.total_exposure > 0 && (
+          <div className="mt-3 space-y-2.5">
+            {RISK_ORDER.filter((lvl) => g.byRisk.has(lvl)).map((lvl) => (
+              <div key={lvl} className="space-y-1.5">
+                {[...g.byRisk.get(lvl).entries()].map(([type, descs]) => (
+                  <div key={type}>
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">{type.replace(/_/g, ' ')}</p>
+                    <ul className="mt-0.5 space-y-1">
+                      {[...descs].map((d, i) => (
+                        <li key={i} className="text-sm text-gray-600 flex items-start gap-1.5">
+                          <span className="mt-1.5 w-1 h-1 rounded-full bg-gray-300 shrink-0" />
+                          {d}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+// Groups HIGH-risk flags into one card per requirement-instance, sorted by financial
+// exposure (highest potential loss first) so the most costly issues surface first —
+// distinct from "Flagged Requirements" which covers all risk levels for awareness.
+function groupSuspicious(transactions) {
+  const map = new Map();
+  for (const t of transactions) {
+    if (!map.has(t.requirement_id)) {
+      map.set(t.requirement_id, {
+        requirement_id: t.requirement_id,
+        requirement_title: t.requirement_title,
+        decided_at_ist: t.decided_at_ist,
+        financial_exposure: t.financial_exposure,
+        flagTypes: new Map(),
+      });
+    }
+    const g = map.get(t.requirement_id);
+    if (!g.flagTypes.has(t.flag_type)) g.flagTypes.set(t.flag_type, new Set());
+    g.flagTypes.get(t.flag_type).add(t.description);
+  }
+  return [...map.values()].sort(
+    (a, b) => (b.financial_exposure?.total_exposure || 0) - (a.financial_exposure?.total_exposure || 0)
+  );
+}
+
+function SuspiciousTransactions({ transactions, onInvestigate }) {
+  const groups = useMemo(() => groupSuspicious(transactions), [transactions]);
+
+  if (groups.length === 0) {
+    return <Card><EmptyState icon={<AlertOctagon size={32} className="text-gray-300" />} title="No suspicious transactions" subtitle="No HIGH-risk flags are currently active. This view will populate the moment a high-risk pattern is detected." /></Card>;
+  }
+
+  const totalExposure = groups.reduce((sum, g) => sum + (g.financial_exposure?.total_exposure || 0), 0);
+
+  return (
+    <div className="space-y-3">
+      <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700 flex items-center gap-2.5">
+        <AlertOctagon size={16} className="shrink-0" />
+        <span>
+          <strong>{groups.length}</strong> high-risk transaction{groups.length !== 1 ? 's' : ''} under review
+          {totalExposure > 0 && <> — <strong>{INR(totalExposure)}</strong> in estimated potential loss</>}.
+        </span>
+      </div>
+      {groups.map((g) => (
+        <Card key={g.requirement_id} className="p-4 border-red-100">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="min-w-0">
+              <p className="font-medium text-[#1E2B4A] text-sm">{g.requirement_title}</p>
+              <p className="text-xs text-gray-400 mt-1">
+                {g.decided_at_ist ? `Bid awarded ${g.decided_at_ist}` : 'Decision pending'}
+              </p>
+            </div>
+            <Button variant="outline" className="!py-1.5 !px-3 text-xs shrink-0" onClick={() => onInvestigate(g)}>
+              <Search size={13} /> Investigate
+            </Button>
+          </div>
+          <div className="mt-2.5 space-y-2">
+            {[...g.flagTypes.entries()].map(([type, descs]) => (
+              <div key={type}>
+                <p className="text-xs font-medium text-red-400 uppercase tracking-wide">{type.replace(/_/g, ' ')}</p>
+                <ul className="mt-0.5 space-y-1">
+                  {[...descs].map((d, i) => (
+                    <li key={i} className="text-sm text-gray-600 flex items-start gap-1.5">
+                      <span className="mt-1.5 w-1 h-1 rounded-full bg-red-300 shrink-0" />
+                      {d}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          {g.financial_exposure && g.financial_exposure.total_exposure > 0 && (
             <div className="mt-3 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 text-sm text-red-700 flex flex-wrap items-center gap-x-2">
               <Banknote size={14} className="shrink-0" />
               <span>
-                (₹{t.financial_exposure.winning_price.toLocaleString('en-IN')} − ₹{t.financial_exposure.lowest_price.toLocaleString('en-IN')})
-                {' × '}{t.financial_exposure.quantity} {t.financial_exposure.unit} ={' '}
-                <strong>{INR(t.financial_exposure.total_exposure)} potential loss</strong>
-                {' '}({t.financial_exposure.winning_vendor} awarded over {t.financial_exposure.lowest_vendor})
+                (₹{g.financial_exposure.winning_price.toLocaleString('en-IN')} − ₹{g.financial_exposure.lowest_price.toLocaleString('en-IN')})
+                {' × '}{g.financial_exposure.quantity} {g.financial_exposure.unit} ={' '}
+                <strong>{INR(g.financial_exposure.total_exposure)} potential loss</strong>
+                {' '}({g.financial_exposure.winning_vendor} awarded over {g.financial_exposure.lowest_vendor})
               </span>
             </div>
           )}
@@ -426,31 +559,7 @@ export default function Compliance() {
         </div>
 
         {view === 'flags' ? (
-          filteredFlags.length === 0 ? (
-            <Card><EmptyState
-              icon={<ShieldAlert size={32} className="text-gray-300" />}
-              title={flags.length === 0 ? 'No flags detected. Procurement health is clean.' : 'No flags found'}
-              subtitle={flags.length === 0 ? null : 'No partiality concerns have been detected for this filter.'}
-            /></Card>
-          ) : (
-            <div className="space-y-3">
-              {filteredFlags.map((f) => (
-                <Card key={f.id} className="p-4 flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-3 min-w-0">
-                    <RiskBadge level={f.risk_level} />
-                    <div className="min-w-0">
-                      <p className="font-medium text-[#1E2B4A] text-sm">{f.requirement_title}</p>
-                      <p className="text-sm text-gray-500 mt-0.5">{f.description}</p>
-                      <p className="text-xs text-gray-400 mt-1">{f.flag_type.replace(/_/g, ' ')} • Detected {f.detected_at_ist}</p>
-                    </div>
-                  </div>
-                  <Button variant="outline" className="!py-1.5 !px-3 text-xs shrink-0" onClick={() => setInvestigating(f)}>
-                    <Search size={13} /> Investigate
-                  </Button>
-                </Card>
-              ))}
-            </div>
-          )
+          <FlaggedRequirements flags={filteredFlags} onInvestigate={setInvestigating} />
         ) : (
           <SuspiciousTransactions transactions={suspicious} onInvestigate={setInvestigating} />
         )}

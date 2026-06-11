@@ -13,6 +13,7 @@ import Archive from './pages/manager/Archive';
 import Compliance from './pages/manager/Compliance';
 import AuditLog from './pages/manager/AuditLog';
 import ManagersList from './pages/manager/ManagersList';
+import ItemMaster from './pages/manager/ItemMaster';
 import VendorPortal from './pages/vendor/VendorPortal';
 
 function PermissionRoute({ permission, children }) {
@@ -71,6 +72,14 @@ export default function App() {
                 element={
                   <AdminRoute>
                     <ManagersList />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="items"
+                element={
+                  <AdminRoute>
+                    <ItemMaster />
                   </AdminRoute>
                 }
               />

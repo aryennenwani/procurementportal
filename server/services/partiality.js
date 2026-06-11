@@ -268,14 +268,16 @@ function runDetection(requirementId) {
 function runGlobalDetection() {
   const newFlags = [];
 
-  // Signal E5 — Repeat Winner Anomaly: one vendor wins > 50% of a manager's decided requirements
+  // Signal E5 — Repeat Winner Anomaly: one vendor wins > 50% of the requirements decided by
+  // the same manager. Keyed on who made the award decision (decided_by), not who raised
+  // the requirement — the requirement raiser doesn't choose the winner.
   const decidedWins = db.prepare(`
-    SELECT r.id AS requirement_id, r.created_by AS manager_id, m.name AS manager_name,
+    SELECT r.id AS requirement_id, qo.decided_by AS manager_id, m.name AS manager_name,
            q.vendor_id, v.company_name AS vendor_name, qo.decided_at
     FROM requirements r
     JOIN quotations q ON q.requirement_id = r.id AND q.is_latest = 1
     JOIN quotation_outcomes qo ON qo.quotation_id = q.id AND qo.outcome = 'won'
-    JOIN managers m ON m.id = r.created_by
+    JOIN managers m ON m.id = qo.decided_by
     JOIN vendors v ON v.id = q.vendor_id
   `).all();
 
@@ -306,7 +308,7 @@ function runGlobalDetection() {
           flag_type: 'VENDOR_MANAGER_COLLUSION',
           risk_level: 'HIGH',
           vendor_id: vendorId,
-          description: `Vendor consistently wins requirements from same manager — possible collusion. ${v.vendorName} has won ${v.wins}/${m.total} (${Math.round(share * 100)}%) of requirements created by ${m.managerName}, exceeding the 50% threshold`,
+          description: `Vendor consistently wins requirements decided by the same person — possible collusion. ${v.vendorName} has won ${v.wins}/${m.total} (${Math.round(share * 100)}%) of requirements decided by ${m.managerName}, exceeding the 50% threshold`,
           metric_value: Math.round(share * 1000) / 10,
         });
       }

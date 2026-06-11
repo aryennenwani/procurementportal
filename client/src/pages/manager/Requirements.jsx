@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus, X, ClipboardList } from 'lucide-react';
 import api, { apiErrorMessage } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 import { Card, PageLoader, Button, Input, Textarea, Select, EmptyState } from '../../components/Common';
 import { StatusBadge, RiskBadge } from '../../components/Badges';
 
@@ -16,9 +17,27 @@ function CreateRequirementModal({ onClose, onCreated }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [items, setItems] = useState([]);
+  const [loadingItems, setLoadingItems] = useState(true);
   const toast = useToast();
 
-  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+  useEffect(() => {
+    api.get('/items')
+      .then(({ data }) => setItems(data.items))
+      .catch((err) => toast.error(apiErrorMessage(err, 'Could not load item list.')))
+      .finally(() => setLoadingItems(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const set = (key) => (e) => {
+    const value = e.target.value;
+    if (key === 'title') {
+      const item = items.find((i) => i.name === value);
+      setForm((f) => ({ ...f, title: value, unit: item?.default_unit || f.unit }));
+      return;
+    }
+    setForm((f) => ({ ...f, [key]: value }));
+  };
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -53,7 +72,13 @@ function CreateRequirementModal({ onClose, onCreated }) {
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
         </div>
         <form onSubmit={onSubmit} className="p-6 space-y-4">
-          <Input label="Item name" required value={form.title} onChange={set('title')} error={errors.title} placeholder="e.g. Industrial Grade Lubricant Oil" />
+          <Select label="Item name" required value={form.title} onChange={set('title')} error={errors.title} disabled={loadingItems}>
+            <option value="">{loadingItems ? 'Loading items…' : 'Select an item…'}</option>
+            {items.map((i) => <option key={i.id} value={i.name}>{i.name}</option>)}
+          </Select>
+          {!loadingItems && items.length === 0 && (
+            <p className="text-xs text-amber-600">No items in the master list yet. Ask an admin to add items under Item Master.</p>
+          )}
           <Textarea label="Description" rows={3} value={form.description} onChange={set('description')} error={errors.description} placeholder="Describe the requirement..." />
           <div className="grid grid-cols-2 gap-4">
             <Input label="Quantity" type="number" step="any" min="0" required value={form.quantity} onChange={set('quantity')} error={errors.quantity} placeholder="e.g. 500" />
@@ -80,6 +105,7 @@ export default function Requirements() {
   const [showModal, setShowModal] = useState(false);
   const [filter, setFilter] = useState('All');
   const toast = useToast();
+  const { isAdmin } = useAuth();
 
   const load = async () => {
     try {
@@ -149,7 +175,7 @@ export default function Requirements() {
                 </div>
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
                   <span className="text-xs text-gray-500">{r.vendor_count} vendor{r.vendor_count !== 1 ? 's' : ''} • {r.quotation_count} quote{r.quotation_count !== 1 ? 's' : ''}</span>
-                  {r.risk_level !== 'LOW' && <RiskBadge level={r.risk_level} />}
+                  {isAdmin && r.risk_level !== 'LOW' && <RiskBadge level={r.risk_level} />}
                 </div>
               </Card>
             </Link>

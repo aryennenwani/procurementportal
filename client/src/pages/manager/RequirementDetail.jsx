@@ -6,10 +6,8 @@ import {
 import api, { apiErrorMessage } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
-import { Card, PageLoader, Button, Select, EmptyState } from '../../components/Common';
+import { Card, PageLoader, Button, EmptyState } from '../../components/Common';
 import { StatusBadge, RiskBadge, OutcomeBadge } from '../../components/Badges';
-
-const STATUSES = ['Open', 'Pending', 'Closed'];
 
 function AssignVendorsModal({ requirementId, assignedIds, onClose, onAssigned }) {
   const [vendors, setVendors] = useState([]);
@@ -259,9 +257,8 @@ export default function RequirementDetail() {
   const [loading, setLoading] = useState(true);
   const [showAssign, setShowAssign] = useState(false);
   const [outcomeFor, setOutcomeFor] = useState(null);
-  const [statusUpdating, setStatusUpdating] = useState(false);
   const toast = useToast();
-  const { isFactoryManager } = useAuth();
+  const { isFactoryManager, isAdmin } = useAuth();
 
   const load = async () => {
     try {
@@ -275,20 +272,6 @@ export default function RequirementDetail() {
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
-
-  const onStatusChange = async (e) => {
-    const status = e.target.value;
-    setStatusUpdating(true);
-    try {
-      await api.patch(`/requirements/${id}/status`, { status });
-      toast.success(`Status changed to "${status}".`);
-      load();
-    } catch (err) {
-      toast.error(apiErrorMessage(err, 'Could not update status.'));
-    } finally {
-      setStatusUpdating(false);
-    }
-  };
 
   const downloadExport = async (format) => {
     try {
@@ -324,7 +307,7 @@ export default function RequirementDetail() {
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl font-semibold text-[#1E2B4A]">{requirement.title}</h1>
             <StatusBadge status={requirement.status} />
-            {partiality.risk_level !== 'LOW' && <RiskBadge level={partiality.risk_level} />}
+            {isAdmin && partiality.risk_level !== 'LOW' && <RiskBadge level={partiality.risk_level} />}
           </div>
           <p className="text-sm text-gray-500 mt-1.5 max-w-2xl">{requirement.description || 'No description provided.'}</p>
           <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-gray-500 mt-3">
@@ -332,14 +315,12 @@ export default function RequirementDetail() {
             {requirement.grade && <span><strong className="text-[#1E2B4A] font-medium">Grade:</strong> {requirement.grade}</span>}
             <span><strong className="text-[#1E2B4A] font-medium">Deadline:</strong> {requirement.deadline_ist}</span>
             <span><strong className="text-[#1E2B4A] font-medium">Created:</strong> {requirement.created_at_ist}</span>
+            <span><strong className="text-[#1E2B4A] font-medium">Raised by:</strong> {requirement.created_by_name}</span>
           </div>
           {requirement.notes && <p className="text-sm text-gray-500 mt-2"><strong className="text-[#1E2B4A] font-medium">Notes:</strong> {requirement.notes}</p>}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2 shrink-0">
-          <Select value={requirement.status} onChange={onStatusChange} disabled={statusUpdating} className="!py-2">
-            {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </Select>
           <Button variant="outline" onClick={() => downloadExport('csv')}>
             <Download size={15} /> CSV
           </Button>
@@ -349,7 +330,7 @@ export default function RequirementDetail() {
         </div>
       </div>
 
-      {partiality.risk_level === 'HIGH' && (
+      {isAdmin && partiality.risk_level === 'HIGH' && (
         <div className="bg-red-50 border border-red-300 rounded-xl px-5 py-4 flex items-start gap-3">
           <AlertTriangle className="text-red-600 shrink-0 mt-0.5" size={20} />
           <div>
@@ -363,7 +344,7 @@ export default function RequirementDetail() {
         </div>
       )}
 
-      {partiality.flags.some((f) => f.risk_level !== 'HIGH') && (
+      {isAdmin && partiality.flags.some((f) => f.risk_level !== 'HIGH') && (
         <Card className="p-5">
           <p className="font-medium text-[#1E2B4A] text-sm mb-3 flex items-center gap-2">
             <AlertTriangle size={16} className="text-amber-500" /> Other detection signals
@@ -379,24 +360,24 @@ export default function RequirementDetail() {
         </Card>
       )}
 
-      <Card className="p-5">
-        <div className="flex items-center justify-between mb-3">
-          <p className="font-medium text-[#1E2B4A] text-sm flex items-center gap-2">
-            <Users size={16} className="text-gray-400" /> Assigned vendors ({assigned_vendors.length})
-          </p>
-          {!isFactoryManager && (
+      {!isFactoryManager && (
+        <Card className="p-5">
+          <div className="flex items-center justify-between mb-3">
+            <p className="font-medium text-[#1E2B4A] text-sm flex items-center gap-2">
+              <Users size={16} className="text-gray-400" /> Assigned vendors ({assigned_vendors.length})
+            </p>
             <Button variant="outline" onClick={() => setShowAssign(true)} className="!py-1.5 !px-3 text-xs">
               <Plus size={14} /> Assign vendors
             </Button>
-          )}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {assigned_vendors.map((v) => (
-            <span key={v.id} className="text-xs px-3 py-1.5 rounded-full bg-gray-100 text-gray-700 font-medium">{v.company_name}</span>
-          ))}
-          {assigned_vendors.length === 0 && <p className="text-sm text-gray-400">No vendors assigned yet.</p>}
-        </div>
-      </Card>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {assigned_vendors.map((v) => (
+              <span key={v.id} className="text-xs px-3 py-1.5 rounded-full bg-gray-100 text-gray-700 font-medium">{v.company_name}</span>
+            ))}
+            {assigned_vendors.length === 0 && <p className="text-sm text-gray-400">No vendors assigned yet.</p>}
+          </div>
+        </Card>
+      )}
 
       <div>
         <h2 className="font-semibold text-[#1E2B4A] mb-3">Quotations received ({quotations.length})</h2>
@@ -478,6 +459,7 @@ export default function RequirementDetail() {
                         <div>
                           <OutcomeBadge outcome={q.outcome === 'won' ? 'Won' : 'Not Selected'} />
                           {q.rejection_reason && <p className="text-xs text-gray-400 mt-1 max-w-[180px]">{q.rejection_reason}</p>}
+                          {q.decided_by_name && <p className="text-xs text-gray-400 mt-1">Decided by: {q.decided_by_name}</p>}
                         </div>
                       ) : (
                         <OutcomeBadge outcome="Pending Decision" />
