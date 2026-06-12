@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ClipboardList, Users, ShieldAlert, TrendingUp, ArrowRight } from 'lucide-react';
+import { ClipboardList, Users, TrendingUp, ArrowRight } from 'lucide-react';
 import api, { apiErrorMessage } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -25,7 +25,6 @@ export default function Overview() {
   const [requirements, setRequirements] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [score, setScore] = useState(null);
-  const [flags, setFlags] = useState([]);
   const [loading, setLoading] = useState(true);
   const { manager, hasPermission } = useAuth();
   const toast = useToast();
@@ -37,15 +36,14 @@ export default function Overview() {
       try {
         const calls = [api.get('/requirements'), api.get('/vendors')];
         if (canViewCompliance) {
-          calls.push(api.get('/compliance/score'), api.get('/compliance/flags'));
+          calls.push(api.get('/compliance/score'));
         }
-        const [reqRes, vendorRes, scoreRes, flagsRes] = await Promise.all(calls);
+        const [reqRes, vendorRes, scoreRes] = await Promise.all(calls);
         if (cancelled) return;
         setRequirements(reqRes.data.requirements);
         setVendors(vendorRes.data.vendors);
         if (canViewCompliance) {
           setScore(scoreRes.data);
-          setFlags(flagsRes.data.flags.filter((f) => !f.resolved).slice(0, 5));
         }
       } catch (err) {
         toast.error(apiErrorMessage(err, 'Could not load dashboard data.'));
@@ -131,21 +129,6 @@ export default function Overview() {
               </div>
             </div>
             <p className="mt-3 text-sm font-medium text-[#1E2B4A]">{score?.label}</p>
-          </div>
-
-          <div className="mt-5 pt-5 border-t border-gray-100">
-            <p className="text-sm font-medium text-[#1E2B4A] mb-3 flex items-center gap-2">
-              <ShieldAlert size={16} className="text-red-500" /> Active flags
-            </p>
-            <div className="space-y-2">
-              {flags.map((f) => (
-                <div key={f.id} className="flex items-start gap-2 text-xs">
-                  <RiskBadge level={f.risk_level} />
-                  <p className="text-gray-600 leading-snug">{f.requirement_title}</p>
-                </div>
-              ))}
-              {flags.length === 0 && <p className="text-sm text-gray-400">No active partiality flags. Looking clean.</p>}
-            </div>
           </div>
         </Card>
         )}
