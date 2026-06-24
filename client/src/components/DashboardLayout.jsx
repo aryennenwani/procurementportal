@@ -131,16 +131,15 @@ export default function DashboardLayout() {
       {/* Brand */}
       <div className={`px-4 mb-7 ${collapsed ? 'flex justify-center' : ''}`}>
         {collapsed ? (
-          <div className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center overflow-hidden">
-            <img src="/shivtek-logo.png" alt="Shivtek Spechemi" className="w-7 h-7 object-contain" />
+          <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center overflow-hidden p-1">
+            <img src="/shivtek-icon.png" alt="Shivtek Spechemi" className="w-full h-full object-contain" />
           </div>
         ) : (
-          <div className="flex items-center gap-2.5">
-            <img src="/shivtek-logo.png" alt="Shivtek Spechemi" className="w-9 h-9 object-contain shrink-0" />
-            <div>
-              <p className="text-white font-bold text-base leading-tight tracking-tight">Shivtek Spechemi</p>
-              <p className="text-blue-200/70 text-xs mt-0.5 font-medium">Procurement Portal</p>
+          <div>
+            <div className="bg-white rounded-lg px-3 py-2 inline-block">
+              <img src="/shivtek-logo.png" alt="Shivtek Spechemi Industries Ltd" className="h-9 object-contain" />
             </div>
+            <p className="text-blue-200/70 text-xs mt-1.5 font-medium">Procurement Portal</p>
           </div>
         )}
       </div>
