@@ -34,12 +34,8 @@ export default function Login() {
     <div className="min-h-screen flex bg-[#F5F8FF]">
       {/* Left panel — brand */}
       <div className="hidden lg:flex flex-col justify-between w-[42%] bg-[#0B2D71] px-14 py-12">
-        <div className="flex items-center gap-3">
-          <img src="/shivtek-logo.png" alt="Shivtek Spechemi" className="w-11 h-11 object-contain" />
-          <div>
-            <p className="text-white font-bold text-xl tracking-tight">Shivtek Spechemi</p>
-            <p className="text-blue-200/60 text-sm mt-0.5">Industries Ltd</p>
-          </div>
+        <div className="bg-white rounded-xl px-5 py-4 inline-block">
+          <img src="/shivtek-logo.png" alt="Shivtek Spechemi Industries Ltd" className="h-16 object-contain" />
         </div>
         <div>
           <h2 className="text-white text-3xl font-bold leading-snug max-w-xs">
@@ -57,9 +53,7 @@ export default function Login() {
         <div className="w-full max-w-sm">
           {/* Mobile brand */}
           <div className="lg:hidden mb-8 text-center">
-            <img src="/shivtek-logo.png" alt="Shivtek Spechemi" className="w-12 h-12 object-contain mx-auto mb-2" />
-            <p className="text-[#0B2D71] font-bold text-xl">Shivtek Spechemi</p>
-            <p className="text-gray-500 text-sm">Industries Ltd</p>
+            <img src="/shivtek-logo.png" alt="Shivtek Spechemi Industries Ltd" className="h-14 object-contain mx-auto" />
           </div>
 
           <h1 className="text-2xl font-bold text-[#1E2B4A] mb-1">Sign in</h1>
