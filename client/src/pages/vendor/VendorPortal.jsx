@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { ShieldCheck, Package, Calendar, CheckCircle2, AlertCircle, History, ChevronDown, ChevronUp } from 'lucide-react';
+import { Package, Calendar, CheckCircle2, AlertCircle, History, ChevronDown, ChevronUp } from 'lucide-react';
 import api, { apiErrorMessage } from '../../api/client';
 import { Spinner, Button } from '../../components/Common';
 import EmailGate from './EmailGate';
@@ -12,8 +12,8 @@ function PortalShell({ children }) {
     <div className="min-h-screen bg-[#F5F8FF] flex flex-col">
       {/* Top bar */}
       <header className="bg-[#0B2D71] px-6 py-4 flex items-center gap-3 shadow-sm">
-        <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center">
-          <ShieldCheck className="text-white" size={16} />
+        <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center overflow-hidden">
+          <img src="/shivtek-logo.png" alt="Shivtek Spechemi" className="w-6 h-6 object-contain" />
         </div>
         <div>
           <p className="text-white font-bold text-sm leading-tight">Shivtek Spechemi</p>
