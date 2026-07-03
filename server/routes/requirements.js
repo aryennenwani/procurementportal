@@ -242,6 +242,10 @@ router.get('/:id/quotations', [param('id').isInt().withMessage('Invalid requirem
     SELECT * FROM quotations WHERE requirement_id = ? AND vendor_id = ? ORDER BY revision_number ASC
   `);
 
+  const getQuoteAttachments = db.prepare(`
+    SELECT id, original_name, mime_type, size_bytes FROM quotation_attachments WHERE quotation_id = ?
+  `);
+
   const enriched = quotations.map((q) => {
     const chain = q.revision_number > 0 ? getRevisionChain.all(req.params.id, q.vendor_id) : [];
     return {
@@ -250,6 +254,7 @@ router.get('/:id/quotations', [param('id').isInt().withMessage('Invalid requirem
       decided_at_ist: q.decided_at ? toIST(q.decided_at) : null,
       is_lowest: lowestPrice !== null && q.per_unit_price === lowestPrice,
       revision_history: chain.map((c) => ({ ...c, submitted_at_ist: toIST(c.submitted_at) })),
+      attachments: getQuoteAttachments.all(q.id),
     };
   });
 

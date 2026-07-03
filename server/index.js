@@ -24,6 +24,7 @@ const quotationRoutes = require('./routes/quotations');
 const notificationRoutes = require('./routes/notifications');
 const managerAdminRoutes = require('./routes/managerAdmin');
 const itemRoutes = require('./routes/items');
+const purchaseOrderRoutes = require('./routes/purchaseOrders');
 
 const PORT = process.env.PORT || 4000;
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -72,6 +73,7 @@ app.use('/api/quotations', quotationRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/managers', managerAdminRoutes);
 app.use('/api/items', itemRoutes);
+app.use('/api/purchase-orders', purchaseOrderRoutes);
 
 // Unmatched API routes → JSON 404
 app.use('/api', (req, res) => {
@@ -98,5 +100,10 @@ app.listen(PORT, () => {
     console.warn('[email]  WARNING: RESEND_API_KEY not set — vendor emails will NOT be sent.');
   } else {
     console.log('[email]  Resend email configured.');
+  }
+  if (require('./services/sap').isSapConfigured()) {
+    console.log('[sap]    SAP S/4HANA integration configured — winning bids will create POs in SAP.');
+  } else {
+    console.warn('[sap]    SAP not configured — purchase orders will be raised in the portal only.');
   }
 });

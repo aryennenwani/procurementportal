@@ -9,3 +9,4 @@ server/data/
 .env
 *.log
 client/.env
+server/uploads/

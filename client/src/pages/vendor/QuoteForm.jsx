@@ -1,9 +1,18 @@
-import { useMemo, useState } from 'react';
-import { ArrowLeft, AlertTriangle } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import { ArrowLeft, AlertTriangle, Paperclip, X, FileText } from 'lucide-react';
 import api, { apiErrorMessage } from '../../api/client';
 import { Button, Input, Textarea } from '../../components/Common';
 
 const EMPTY_FORM = { per_unit_price: '', lead_time_days: '', validity_period: '', payment_terms: '', remarks: '' };
+
+const MAX_FILES = 3;
+const MAX_FILE_MB = 5;
+const ACCEPTED = '.pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx';
+
+function formatSize(bytes) {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
 
 export default function QuoteForm({ token, requirement, mode = 'submit', onCancel, onSubmitted }) {
   const isRevision = mode === 'revise';
@@ -20,9 +29,12 @@ export default function QuoteForm({ token, requirement, mode = 'submit', onCance
     }
     return EMPTY_FORM;
   });
+  const [files, setFiles] = useState([]);
+  const [fileError, setFileError] = useState('');
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState('');
+  const fileInputRef = useRef(null);
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
@@ -32,6 +44,30 @@ export default function QuoteForm({ token, requirement, mode = 'submit', onCance
     return price * Number(requirement.quantity);
   }, [form.per_unit_price, requirement.quantity]);
 
+  const addFiles = (list) => {
+    setFileError('');
+    const incoming = Array.from(list || []);
+    const next = [...files];
+    for (const f of incoming) {
+      if (next.length >= MAX_FILES) {
+        setFileError(`You can attach at most ${MAX_FILES} files.`);
+        break;
+      }
+      if (f.size > MAX_FILE_MB * 1024 * 1024) {
+        setFileError(`"${f.name}" is larger than ${MAX_FILE_MB} MB.`);
+        continue;
+      }
+      if (next.some((x) => x.name === f.name && x.size === f.size)) continue;
+      next.push(f);
+    }
+    setFiles(next);
+  };
+
+  const removeFile = (idx) => {
+    setFiles((prev) => prev.filter((_, i) => i !== idx));
+    setFileError('');
+  };
+
   const onSubmit = async (e) => {
     e.preventDefault();
     setErrors({});
@@ -39,14 +75,15 @@ export default function QuoteForm({ token, requirement, mode = 'submit', onCance
     setSubmitting(true);
     try {
       const endpoint = isRevision ? 'revise' : 'quote';
-      const { data } = await api.post(`/vendor/${token}/${endpoint}`, {
-        requirement_id: requirement.id,
-        per_unit_price: Number(form.per_unit_price),
-        lead_time_days: Number(form.lead_time_days),
-        validity_period: form.validity_period,
-        payment_terms: form.payment_terms,
-        remarks: form.remarks,
-      });
+      const fd = new FormData();
+      fd.append('requirement_id', requirement.id);
+      fd.append('per_unit_price', Number(form.per_unit_price));
+      fd.append('lead_time_days', Number(form.lead_time_days));
+      fd.append('validity_period', form.validity_period);
+      fd.append('payment_terms', form.payment_terms);
+      fd.append('remarks', form.remarks);
+      files.forEach((f) => fd.append('attachments', f));
+      const { data } = await api.post(`/vendor/${token}/${endpoint}`, fd);
       onSubmitted({ ...data.quotation, message: data.message, revised: isRevision });
     } catch (err) {
       if (err.response?.status === 400 && err.response.data?.details) {
@@ -61,7 +98,7 @@ export default function QuoteForm({ token, requirement, mode = 'submit', onCance
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+    <div className="card-surface overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
         <button onClick={onCancel} className="text-gray-400 hover:text-[#1E2B4A]"><ArrowLeft size={18} /></button>
         <div>
@@ -129,6 +166,44 @@ export default function QuoteForm({ token, requirement, mode = 'submit', onCance
           error={errors.remarks}
           placeholder="Any additional information for the procurement manager…"
         />
+
+        {/* Attachments — spec sheets, COAs, datasheets */}
+        <div className="text-sm">
+          <span className="block mb-1.5 font-medium text-[#1E2B4A]">Attachments (optional)</span>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept={ACCEPTED}
+            className="hidden"
+            onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={files.length >= MAX_FILES}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-dashed border-[#C9D6EF] text-[#1A56D6] text-sm font-medium hover:border-[#1A56D6]/60 hover:bg-[#1A56D6]/[0.04] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Paperclip size={15} />
+            Attach spec sheets / COAs — up to {MAX_FILES} files, {MAX_FILE_MB} MB each
+          </button>
+          {fileError && <p className="mt-1.5 text-xs text-red-600">{fileError}</p>}
+          {files.length > 0 && (
+            <ul className="mt-2 space-y-1.5">
+              {files.map((f, idx) => (
+                <li key={`${f.name}-${f.size}`} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[#F5F8FF] border border-[#E3EAF7] text-sm">
+                  <FileText size={15} className="text-[#1A56D6] shrink-0" />
+                  <span className="truncate text-[#1E2B4A] font-medium flex-1">{f.name}</span>
+                  <span className="text-xs text-gray-400 shrink-0">{formatSize(f.size)}</span>
+                  <button type="button" onClick={() => removeFile(idx)} className="text-gray-400 hover:text-red-600 shrink-0" title="Remove file">
+                    <X size={14} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-1.5 text-xs text-gray-400">PDF, image, Word, or Excel. Attachments become a permanent part of your quotation.</p>
+        </div>
 
         {serverError && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{serverError}</p>}
 

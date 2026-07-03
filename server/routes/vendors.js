@@ -10,8 +10,8 @@ const router = express.Router();
 router.use(requireAuth);
 
 const insertVendor = db.prepare(`
-  INSERT INTO vendors (company_name, contact_person, email, phone, category, unique_token)
-  VALUES (@company_name, @contact_person, @email, @phone, @category, @unique_token)
+  INSERT INTO vendors (company_name, contact_person, email, phone, category, unique_token, sap_supplier_code)
+  VALUES (@company_name, @contact_person, @email, @phone, @category, @unique_token, @sap_supplier_code)
 `);
 
 const getVendorById = db.prepare('SELECT * FROM vendors WHERE id = ?');
@@ -49,6 +49,7 @@ router.post(
     body('email').isEmail().withMessage('A valid email address is required'),
     body('phone').trim().notEmpty().withMessage('Phone number is required'),
     body('category').trim().notEmpty().withMessage('Category is required'),
+    body('sap_supplier_code').optional({ checkFalsy: true }).trim().isLength({ max: 20 }).withMessage('SAP supplier code must be 20 characters or fewer'),
   ],
   (req, res) => {
     const errors = validationResult(req);
@@ -56,10 +57,13 @@ router.post(
       return res.status(400).json({ error: 'Validation failed', details: errors.array() });
     }
 
-    const { company_name, contact_person, email, phone, category } = req.body;
+    const { company_name, contact_person, email, phone, category, sap_supplier_code } = req.body;
     const unique_token = uuidv4();
 
-    const info = insertVendor.run({ company_name, contact_person, email, phone, category, unique_token });
+    const info = insertVendor.run({
+      company_name, contact_person, email, phone, category, unique_token,
+      sap_supplier_code: sap_supplier_code || null,
+    });
 
     recordAudit({
       actionType: 'VENDOR_CREATED',
@@ -72,6 +76,35 @@ router.post(
 
     const vendor = getVendorById.get(info.lastInsertRowid);
     res.status(201).json({ vendor: { ...vendor, portal_url: `/vendor/${vendor.unique_token}` } });
+  }
+);
+
+// Set / update the SAP vendor-master supplier code for an existing vendor.
+router.patch(
+  '/:id/sap-code',
+  [body('sap_supplier_code').optional({ checkFalsy: true }).trim().isLength({ max: 20 }).withMessage('SAP supplier code must be 20 characters or fewer')],
+  (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'Validation failed', details: errors.array() });
+    }
+
+    const vendor = getVendorById.get(req.params.id);
+    if (!vendor) return res.status(404).json({ error: 'Vendor not found.' });
+
+    const code = req.body.sap_supplier_code || null;
+    db.prepare('UPDATE vendors SET sap_supplier_code = ? WHERE id = ?').run(code, req.params.id);
+
+    recordAudit({
+      actionType: 'VENDOR_SAP_CODE_UPDATED',
+      performedBy: `manager:${req.manager.id}(${req.manager.email})`,
+      targetType: 'vendor',
+      targetId: req.params.id,
+      details: { company_name: vendor.company_name, from: vendor.sap_supplier_code, to: code },
+      ip: getClientIp(req),
+    });
+
+    res.json({ vendor: getVendorById.get(req.params.id) });
   }
 );
 

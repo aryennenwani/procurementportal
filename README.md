@@ -304,6 +304,40 @@ trustworthy: the data they're built on can't quietly change underneath them.
 
 ---
 
+## 7.5 SAP S/4HANA Purchase Order Integration
+
+Selecting a winning bid automatically **raises a purchase order**:
+
+1. An internal PO (`PO-<year>-<seq>`, e.g. `PO-2026-00001`) is created
+   synchronously in the same flow as the award decision — it can never be lost,
+   even if SAP is down.
+2. If SAP is configured, the PO is pushed in the background to the standard
+   S/4HANA OData service `API_PURCHASEORDER_PROCESS_SRV` (CSRF token handshake +
+   `A_PurchaseOrder` POST). The SAP-assigned PO number is stored alongside the
+   internal one.
+3. Sync state is tracked per PO — `synced`, `pending`, `failed` (retryable from
+   the UI), or `local` (SAP not configured). Failures record the exact SAP error
+   and can be retried from the **Purchase Orders** page or the requirement page.
+
+Configuration (all optional — leave `SAP_BASE_URL` empty to run portal-only):
+
+| Variable | Meaning | Default |
+|---|---|---|
+| `SAP_BASE_URL` | S/4HANA host, e.g. `https://myhost.s4hana.cloud.sap` | — |
+| `SAP_USERNAME` / `SAP_PASSWORD` | Communication user credentials | — |
+| `SAP_CLIENT` | Optional `sap-client` number | — |
+| `SAP_COMPANY_CODE` | Company code on the PO | `1000` |
+| `SAP_PURCH_ORG` | Purchasing organization | `1000` |
+| `SAP_PURCH_GROUP` | Purchasing group | `001` |
+| `SAP_PLANT` | Receiving plant | `1000` |
+
+Each vendor additionally needs an **SAP supplier code** (their vendor-master
+number) before their POs can sync — set it when adding the vendor or later from
+the Vendors page. A branded **PO PDF** (supplier block, item table, terms,
+signature lines) can be downloaded for any PO regardless of SAP state.
+
+---
+
 ## 8. Useful scripts (run from the project root)
 
 | Command | What it does |

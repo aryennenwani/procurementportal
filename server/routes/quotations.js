@@ -5,9 +5,35 @@ const { requireAuth, requireProcurementManager } = require('../middleware/auth')
 const { recordAudit } = require('../middleware/audit');
 const { getClientIp, toIST } = require('../utils');
 const { runDetection, runGlobalDetection } = require('../services/partiality');
+const { raisePurchaseOrderForWin } = require('../services/sap');
+const path = require('path');
+const { QUOTE_UPLOAD_DIR } = require('../services/uploads');
 
 const router = express.Router();
 router.use(requireAuth);
+
+// Download a file the vendor attached to their quotation (spec sheet, COA, …).
+router.get(
+  '/:id/attachments/:attachmentId',
+  [param('id').isInt(), param('attachmentId').isInt()],
+  (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'Validation failed', details: errors.array() });
+    }
+
+    const attachment = db.prepare(
+      'SELECT * FROM quotation_attachments WHERE id = ? AND quotation_id = ?'
+    ).get(req.params.attachmentId, req.params.id);
+    if (!attachment) return res.status(404).json({ error: 'Attachment not found.' });
+
+    res.download(path.join(QUOTE_UPLOAD_DIR, attachment.stored_name), attachment.original_name, (err) => {
+      if (err && !res.headersSent) {
+        res.status(404).json({ error: 'The attachment file is no longer available on the server.' });
+      }
+    });
+  }
+);
 
 const MIN_BIDS_TO_DECIDE = 2;
 const MIN_JUSTIFICATION_LENGTH = 50;
@@ -196,8 +222,27 @@ router.post(
     runDetection(quotation.requirement_id);
     runGlobalDetection();
 
+    // A winning bid immediately raises the purchase order (and kicks off the SAP
+    // sync in the background). PO creation must never fail the award decision.
+    let purchaseOrder = null;
+    if (outcome === 'won') {
+      try {
+        purchaseOrder = raisePurchaseOrderForWin({
+          requirementId: quotation.requirement_id,
+          quotationId: quotation.id,
+          managerId: req.manager.id,
+          ip,
+        });
+      } catch (err) {
+        console.error('[sap] failed to raise purchase order:', err);
+      }
+    }
+
     const created = db.prepare('SELECT * FROM quotation_outcomes WHERE id = ?').get(info.lastInsertRowid);
-    res.status(201).json({ outcome: { ...created, decided_at_ist: toIST(created.decided_at) } });
+    res.status(201).json({
+      outcome: { ...created, decided_at_ist: toIST(created.decided_at) },
+      purchase_order: purchaseOrder,
+    });
   }
 );
 

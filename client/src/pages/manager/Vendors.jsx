@@ -1,10 +1,54 @@
 import { useEffect, useState } from 'react';
-import { Plus, X, Users, History } from 'lucide-react';
+import { Plus, X, Users, History, Boxes } from 'lucide-react';
 import api, { apiErrorMessage } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
-import { Card, PageLoader, Button, Input, EmptyState, CopyButton } from '../../components/Common';
+import { Card, PageLoader, Button, Input, EmptyState, CopyButton, Modal, PageHeader } from '../../components/Common';
 
-const EMPTY_FORM = { company_name: '', contact_person: '', email: '', phone: '', category: '' };
+const EMPTY_FORM = { company_name: '', contact_person: '', email: '', phone: '', category: '', sap_supplier_code: '' };
+
+// Small editor for the SAP vendor-master code — needed before POs can sync to SAP.
+function SapCodeModal({ vendor, onClose, onSaved }) {
+  const [code, setCode] = useState(vendor.sap_supplier_code || '');
+  const [saving, setSaving] = useState(false);
+  const toast = useToast();
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const { data } = await api.patch(`/vendors/${vendor.id}/sap-code`, { sap_supplier_code: code });
+      toast.success('SAP supplier code saved.');
+      onSaved(data.vendor);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Could not save the SAP supplier code.'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal onClose={onClose} className="w-full max-w-sm">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <h2 className="font-semibold text-[#1E2B4A] text-lg">SAP supplier code</h2>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
+      </div>
+      <form onSubmit={onSubmit} className="p-6 space-y-4">
+        <Input
+          label={`SAP vendor-master code for ${vendor.company_name}`}
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          placeholder="e.g. 0000100234"
+          maxLength={20}
+        />
+        <p className="text-xs text-gray-400">Purchase orders for this vendor can only sync to SAP once this code is set.</p>
+        <div className="flex justify-end gap-3 pt-1">
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="gold" disabled={saving}>{saving ? 'Saving…' : 'Save code'}</Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
 
 function CreateVendorModal({ onClose, onCreated }) {
   const [form, setForm] = useState(EMPTY_FORM);
@@ -48,7 +92,8 @@ function CreateVendorModal({ onClose, onCreated }) {
           <Input label="Email address" type="email" required value={form.email} onChange={set('email')} error={errors.email} placeholder="contact@vendor.com" />
           <Input label="Phone number" required value={form.phone} onChange={set('phone')} error={errors.phone} placeholder="+91 98xxxxxxx" />
           <Input label="Category" required value={form.category} onChange={set('category')} error={errors.category} placeholder="e.g. Chemicals, Packaging, Lubricants…" />
-          <p className="text-xs text-gray-400">A unique portal link will be generated automatically — no login required for the vendor to view requirements and submit quotations.</p>
+          <Input label="SAP supplier code (optional)" value={form.sap_supplier_code} onChange={set('sap_supplier_code')} error={errors.sap_supplier_code} placeholder="e.g. 0000100234" maxLength={20} />
+          <p className="text-xs text-gray-400">A unique portal link will be generated automatically — no login required for the vendor to view requirements and submit quotations. The SAP code links this vendor to your ERP vendor master for purchase orders.</p>
           <div className="flex justify-end gap-3 pt-1">
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
             <Button type="submit" variant="gold" disabled={submitting}>{submitting ? 'Adding…' : 'Add vendor'}</Button>
@@ -107,6 +152,7 @@ export default function Vendors() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [activityFor, setActivityFor] = useState(null);
+  const [sapCodeFor, setSapCodeFor] = useState(null);
   const toast = useToast();
 
   const load = async () => {
@@ -126,15 +172,11 @@ export default function Vendors() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#1E2B4A]">Vendors</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage vendors and their unique portal links.</p>
-        </div>
+      <PageHeader title="Vendors" subtitle="Manage vendors, portal links, and SAP vendor-master codes.">
         <Button variant="gold" onClick={() => setShowModal(true)}>
           <Plus size={16} /> Add vendor
         </Button>
-      </div>
+      </PageHeader>
 
       {loading ? (
         <PageLoader />
@@ -143,9 +185,9 @@ export default function Vendors() {
           <EmptyState icon={<Users size={32} className="text-gray-300" />} title="No vendors added yet." />
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 stagger-children">
           {vendors.map((v) => (
-            <Card key={v.id} className="p-5">
+            <Card key={v.id} hover className="p-5">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h3 className="font-semibold text-[#1E2B4A] truncate">{v.company_name}</h3>
@@ -160,6 +202,18 @@ export default function Vendors() {
                 <p className="truncate">{v.email}</p>
                 <p>{v.total_bids} bid{v.total_bids !== 1 ? 's' : ''} • {v.wins} won • assigned to {v.assigned_count} requirement{v.assigned_count !== 1 ? 's' : ''}</p>
                 {v.last_activity_ist && <p>Last active: {v.last_activity_ist}</p>}
+                <button
+                  onClick={() => setSapCodeFor(v)}
+                  className={`inline-flex items-center gap-1.5 mt-1 px-2 py-1 rounded-md border text-[11px] font-semibold transition-colors ${
+                    v.sap_supplier_code
+                      ? 'border-[#D4DEF0] text-[#1E2B4A] hover:border-[#1A56D6]/50'
+                      : 'border-dashed border-amber-300 text-amber-700 bg-amber-50/60 hover:border-amber-400'
+                  }`}
+                  title="Set SAP vendor-master supplier code"
+                >
+                  <Boxes size={12} />
+                  {v.sap_supplier_code ? `SAP ${v.sap_supplier_code}` : 'Add SAP supplier code'}
+                </button>
               </div>
               <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between gap-2">
                 <code className="text-xs text-gray-500 truncate max-w-[140px]" title={`${portalOrigin}${v.portal_url}`}>
@@ -185,6 +239,16 @@ export default function Vendors() {
         <CreateVendorModal onClose={() => setShowModal(false)} onCreated={(v) => { setShowModal(false); setVendors((prev) => [v, ...prev]); }} />
       )}
       {activityFor && <ActivityModal vendor={activityFor} onClose={() => setActivityFor(null)} />}
+      {sapCodeFor && (
+        <SapCodeModal
+          vendor={sapCodeFor}
+          onClose={() => setSapCodeFor(null)}
+          onSaved={(updated) => {
+            setSapCodeFor(null);
+            setVendors((prev) => prev.map((v) => (v.id === updated.id ? { ...v, sap_supplier_code: updated.sap_supplier_code } : v)));
+          }}
+        />
+      )}
     </div>
   );
 }

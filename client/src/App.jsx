@@ -14,6 +14,7 @@ import Compliance from './pages/manager/Compliance';
 import AuditLog from './pages/manager/AuditLog';
 import ManagersList from './pages/manager/ManagersList';
 import ItemMaster from './pages/manager/ItemMaster';
+import PurchaseOrders from './pages/manager/PurchaseOrders';
 import VendorPortal from './pages/vendor/VendorPortal';
 
 function PermissionRoute({ permission, children }) {
@@ -50,6 +51,7 @@ export default function App() {
               <Route path="requirements" element={<Requirements />} />
               <Route path="requirements/:id" element={<RequirementDetail />} />
               <Route path="vendors" element={<Vendors />} />
+              <Route path="purchase-orders" element={<PurchaseOrders />} />
               <Route path="archive" element={<Archive />} />
               <Route
                 path="compliance"

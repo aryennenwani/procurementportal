@@ -2,12 +2,107 @@ import { useEffect, useState, Fragment } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft, Download, FileText, Users, AlertTriangle, Trophy, Ban, Plus, History, ChevronDown, ChevronUp,
+  FileCheck2, RefreshCw, Paperclip,
 } from 'lucide-react';
 import api, { apiErrorMessage } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
-import { Card, PageLoader, Button, EmptyState } from '../../components/Common';
-import { StatusBadge, RiskBadge, OutcomeBadge } from '../../components/Badges';
+import { Card, PageLoader, Button, EmptyState, Modal } from '../../components/Common';
+import { StatusBadge, RiskBadge, OutcomeBadge, SapStatusBadge } from '../../components/Badges';
+
+// Purchase order raised for this requirement's winning bid — with SAP sync state,
+// document download, and a retry path when the ERP push failed.
+function PurchaseOrderCard({ requirementId }) {
+  const [po, setPo] = useState(null);
+  const [sapConfigured, setSapConfigured] = useState(true);
+  const [retrying, setRetrying] = useState(false);
+  const toast = useToast();
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get(`/purchase-orders/requirement/${requirementId}`)
+      .then(({ data }) => {
+        if (cancelled) return;
+        setPo(data.purchase_order);
+        setSapConfigured(data.sap_configured);
+      })
+      .catch(() => { /* no PO for this requirement */ });
+    return () => { cancelled = true; };
+  }, [requirementId]);
+
+  if (!po) return null;
+
+  const downloadPdf = async () => {
+    try {
+      const res = await api.get(`/purchase-orders/${po.id}/pdf`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${po.po_number}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Could not download the PO document.'));
+    }
+  };
+
+  const retrySync = async () => {
+    setRetrying(true);
+    try {
+      const { data } = await api.post(`/purchase-orders/${po.id}/retry`);
+      setPo(data.purchase_order);
+      if (data.purchase_order.sap_status === 'synced') {
+        toast.success(`Synced to SAP as ${data.purchase_order.sap_po_number}.`);
+      } else {
+        toast.error(data.purchase_order.sap_error || 'SAP sync failed again.');
+      }
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Could not retry the SAP sync.'));
+    } finally {
+      setRetrying(false);
+    }
+  };
+
+  return (
+    <Card className="p-5 !border-emerald-200 bg-gradient-to-r from-emerald-50/70 to-white">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-start gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+            <FileCheck2 size={20} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <p className="font-bold text-[#101C3B]">{po.po_number}</p>
+              <SapStatusBadge status={po.sap_status} />
+            </div>
+            <p className="text-sm text-[#64748F] mt-1">
+              Purchase order for <strong className="text-[#1E2B4A]">{po.vendor_name}</strong> — ₹{po.total_amount.toLocaleString('en-IN')}
+              {po.sap_po_number && <> • SAP PO <strong className="text-[#1E2B4A]">{po.sap_po_number}</strong></>}
+            </p>
+            {po.sap_status === 'failed' && po.sap_error && (
+              <p className="text-xs text-red-600 mt-1.5 flex items-start gap-1">
+                <AlertTriangle size={12} className="shrink-0 mt-0.5" /> {po.sap_error}
+              </p>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-2 shrink-0">
+          {(po.sap_status === 'failed' || (po.sap_status === 'local' && sapConfigured)) && (
+            <Button variant="outline" className="!py-1.5 !px-3 text-xs" disabled={retrying} onClick={retrySync}>
+              <RefreshCw size={13} className={retrying ? 'animate-spin' : ''} />
+              {retrying ? 'Syncing…' : 'Retry SAP sync'}
+            </Button>
+          )}
+          <Button variant="outline" className="!py-1.5 !px-3 text-xs" onClick={downloadPdf}>
+            <Download size={13} /> Download PO
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 function AssignVendorsModal({ requirementId, assignedIds, onClose, onAssigned }) {
   const [vendors, setVendors] = useState([]);
@@ -39,10 +134,8 @@ function AssignVendorsModal({ requirementId, assignedIds, onClose, onAssigned })
   const available = vendors.filter((v) => !assignedIds.includes(v.id));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[85vh] overflow-y-auto">
-        <div className="px-6 py-4 border-b border-gray-100 sticky top-0 bg-white">
+    <Modal onClose={onClose} className="w-full max-w-md max-h-[85vh] overflow-y-auto">
+        <div className="px-6 py-4 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">
           <h2 className="font-semibold text-[#1E2B4A] text-lg">Assign vendors</h2>
           <p className="text-sm text-gray-500 mt-0.5">Select one or more vendors to invite for this requirement.</p>
         </div>
@@ -74,8 +167,7 @@ function AssignVendorsModal({ requirementId, assignedIds, onClose, onAssigned })
             {submitting ? 'Assigning…' : `Assign ${selected.length || ''}`.trim()}
           </Button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -111,9 +203,7 @@ function OutcomeModal({ quotation, requirementTitle, lowestQuotation, totalQuota
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md">
+    <Modal onClose={onClose} className="w-full max-w-md">
         <div className="px-6 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-[#1E2B4A] text-lg">Record outcome — {quotation.company_name}</h2>
           <p className="text-sm text-gray-500 mt-0.5">For: {requirementTitle}</p>
@@ -198,7 +288,44 @@ function OutcomeModal({ quotation, requirementTitle, lowestQuotation, totalQuota
             {submitting ? 'Saving…' : 'Confirm decision'}
           </Button>
         </div>
-      </div>
+    </Modal>
+  );
+}
+
+// Downloadable chips for the files a vendor attached to their quotation.
+function AttachmentChips({ quotation }) {
+  const toast = useToast();
+  if (!quotation.attachments || quotation.attachments.length === 0) return null;
+
+  const download = async (att) => {
+    try {
+      const res = await api.get(`/quotations/${quotation.id}/attachments/${att.id}`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = att.original_name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Could not download the attachment.'));
+    }
+  };
+
+  return (
+    <div className="flex flex-wrap gap-1.5 mt-1.5">
+      {quotation.attachments.map((att) => (
+        <button
+          key={att.id}
+          onClick={() => download(att)}
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#1A56D6]/[0.07] border border-[#1A56D6]/25 text-[11px] font-medium text-[#1A56D6] hover:bg-[#1A56D6]/[0.14] transition-colors max-w-[180px]"
+          title={`Download ${att.original_name}`}
+        >
+          <Paperclip size={11} className="shrink-0" />
+          <span className="truncate">{att.original_name}</span>
+        </button>
+      ))}
     </div>
   );
 }
@@ -330,6 +457,10 @@ export default function RequirementDetail() {
         </div>
       </div>
 
+      {requirement.status === 'Closed' && !isFactoryManager && (
+        <PurchaseOrderCard requirementId={requirement.id} />
+      )}
+
       {isAdmin && partiality.risk_level === 'HIGH' && (
         <div className="bg-red-50 border border-red-300 rounded-xl px-5 py-4 flex items-start gap-3">
           <AlertTriangle className="text-red-600 shrink-0 mt-0.5" size={20} />
@@ -405,9 +536,9 @@ export default function RequirementDetail() {
             />
           </Card>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-gray-200">
+          <div className="table-shell overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
+              <thead className="text-gray-500 text-xs uppercase tracking-wide">
                 <tr>
                   <th className="text-left px-4 py-3 font-medium">Vendor</th>
                   <th className="text-right px-4 py-3 font-medium">Per-unit price</th>
@@ -434,6 +565,7 @@ export default function RequirementDetail() {
                         )}
                       </div>
                       <p className="text-xs text-gray-500">{q.contact_person}</p>
+                      <AttachmentChips quotation={q} />
                     </td>
                     <td className="px-4 py-3.5 text-right">
                       {q.per_unit_price !== null ? (

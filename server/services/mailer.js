@@ -33,7 +33,7 @@ function layout(bodyHtml, ctaLabel, ctaUrl) {
   </div>`;
 }
 
-async function sendMail({ to, subject, html, text, context }) {
+async function sendMail({ to, subject, html, text, attachments, context }) {
   const client = getResend();
   if (!client) {
     console.warn(`[email] SKIPPED — RESEND_API_KEY not configured. Would have sent "${subject}" to ${to}`);
@@ -45,7 +45,7 @@ async function sendMail({ to, subject, html, text, context }) {
       details: { to, subject, reason: 'RESEND_API_KEY not configured' },
       ip: null,
     });
-    return;
+    return false;
   }
 
   console.log(`[email] Sending "${subject}" to ${to} ...`);
@@ -57,9 +57,11 @@ async function sendMail({ to, subject, html, text, context }) {
       subject,
       html,
       text: text || undefined,
+      attachments: attachments || undefined,
     });
     if (error) throw new Error(error.message);
     console.log(`[email] Sent OK → ${to}`);
+    return true;
   } catch (err) {
     console.error(`[email] FAILED → ${to} | ${err.message}`);
     recordAudit({
@@ -70,6 +72,7 @@ async function sendMail({ to, subject, html, text, context }) {
       details: { to, subject, reason: err.message },
       ip: null,
     });
+    return false;
   }
 }
 
@@ -148,10 +151,56 @@ async function sendQuotationNotificationEmail({ manager, vendor, requirement, am
   });
 }
 
+// Sends the winning vendor their purchase order with the branded PO PDF attached.
+async function sendPurchaseOrderEmail({ po, pdfBuffer }) {
+  const html = layout(`
+    <h1 style="font-size:20px;margin:0 0 16px;">Purchase Order ${po.po_number}</h1>
+    <p style="font-size:14px;line-height:1.6;margin:0 0 16px;">
+      Hello ${po.vendor_contact}, congratulations — <strong>${po.vendor_name}</strong> has been awarded the following requirement.
+      The official purchase order is attached as a PDF.
+    </p>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin:0 0 8px;">
+      <tr><td style="padding:6px 0;color:#8a8a8e;width:130px;">PO Number</td><td style="padding:6px 0;font-weight:600;">${po.po_number}</td></tr>
+      <tr><td style="padding:6px 0;color:#8a8a8e;">Item</td><td style="padding:6px 0;font-weight:600;">${po.requirement_title}</td></tr>
+      <tr><td style="padding:6px 0;color:#8a8a8e;">Quantity</td><td style="padding:6px 0;">${po.quantity} ${po.unit}</td></tr>
+      <tr><td style="padding:6px 0;color:#8a8a8e;">Total Value</td><td style="padding:6px 0;">₹${Number(po.total_amount).toLocaleString('en-IN')}</td></tr>
+      <tr><td style="padding:6px 0;color:#8a8a8e;">Payment Terms</td><td style="padding:6px 0;">${po.payment_terms}</td></tr>
+      <tr><td style="padding:6px 0;color:#8a8a8e;">Delivery</td><td style="padding:6px 0;">${po.lead_time_days} days from PO date</td></tr>
+    </table>
+    <p style="font-size:14px;line-height:1.6;margin:16px 0 0;">
+      Please acknowledge receipt of this purchase order by replying to your usual contact at Shivtek Spechemi.
+    </p>
+  `, null, null);
+
+  const text = [
+    `Hello ${po.vendor_contact},`,
+    ``,
+    `Congratulations — ${po.vendor_name} has been awarded the following requirement. The official purchase order is attached as a PDF.`,
+    ``,
+    `PO Number: ${po.po_number}`,
+    `Item: ${po.requirement_title}`,
+    `Quantity: ${po.quantity} ${po.unit}`,
+    `Total Value: Rs. ${Number(po.total_amount).toLocaleString('en-IN')}`,
+    `Payment Terms: ${po.payment_terms}`,
+    `Delivery: ${po.lead_time_days} days from PO date`,
+    ``,
+    `This is an automated message from Shivtek Spechemi Industries Ltd. Please do not reply to this email.`,
+  ].join('\n');
+
+  return sendMail({
+    to: po.vendor_email,
+    subject: `Purchase Order ${po.po_number} — ${po.requirement_title}`,
+    html,
+    text,
+    attachments: [{ filename: `${po.po_number}.pdf`, content: pdfBuffer }],
+    context: { targetType: 'purchase_order', targetId: po.id },
+  });
+}
+
 function notifyManager({ managerId, title, body, targetType = null, targetId = null }) {
   db.prepare(`
     INSERT INTO notifications (manager_id, title, body, target_type, target_id) VALUES (?, ?, ?, ?, ?)
   `).run(managerId, title, body, targetType, targetId !== null && targetId !== undefined ? String(targetId) : null);
 }
 
-module.exports = { sendVendorAssignmentEmail, sendQuotationNotificationEmail, notifyManager };
+module.exports = { sendVendorAssignmentEmail, sendQuotationNotificationEmail, sendPurchaseOrderEmail, notifyManager };

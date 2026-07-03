@@ -10,6 +10,7 @@ const { sendQuotationNotificationEmail, notifyManager } = require('../services/m
 const {
   SESSION_HOURS, setSessionCookie, requireVendorSession,
 } = require('../middleware/vendorAuth');
+const { quoteAttachmentUpload, discardUploadedFiles } = require('../services/uploads');
 
 const router = express.Router();
 
@@ -65,12 +66,28 @@ const insertSession = db.prepare(`
   VALUES (?, ?, ?, ?, ?, ?)
 `);
 
+const insertAttachment = db.prepare(`
+  INSERT INTO quotation_attachments (quotation_id, original_name, stored_name, mime_type, size_bytes)
+  VALUES (?, ?, ?, ?, ?)
+`);
+
+const getAttachments = db.prepare(`
+  SELECT id, original_name, mime_type, size_bytes FROM quotation_attachments WHERE quotation_id = ?
+`);
+
+function saveAttachments(quotationId, files) {
+  for (const f of files || []) {
+    insertAttachment.run(quotationId, f.originalname, f.filename, f.mimetype, f.size);
+  }
+}
+
 function shapeQuotation(q, requirement) {
   return {
     ...q,
     submitted_at_ist: toIST(q.submitted_at),
     requirement_title: requirement.title,
     unit: requirement.unit,
+    attachments: getAttachments.all(q.id),
   };
 }
 
@@ -221,6 +238,7 @@ router.get('/:token', (req, res) => {
 
 router.post(
   '/:token/quote',
+  quoteAttachmentUpload,
   [
     body('requirement_id').isInt().withMessage('A requirement must be specified'),
     body('per_unit_price').isFloat({ gt: 0 }).withMessage('Per-unit price must be a positive number'),
@@ -232,23 +250,32 @@ router.post(
   (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      discardUploadedFiles(req);
       return res.status(400).json({ error: 'Validation failed', details: errors.array() });
     }
 
     const vendor = getVendorByToken.get(req.params.token);
-    if (!vendor) return res.status(404).json({ error: 'Vendor portal link not found.' });
+    if (!vendor) {
+      discardUploadedFiles(req);
+      return res.status(404).json({ error: 'Vendor portal link not found.' });
+    }
 
     const { requirement_id, per_unit_price, lead_time_days, validity_period, payment_terms, remarks } = req.body;
 
     const requirement = getRequirementById.get(requirement_id);
-    if (!requirement) return res.status(404).json({ error: 'Requirement not found.' });
+    if (!requirement) {
+      discardUploadedFiles(req);
+      return res.status(404).json({ error: 'Requirement not found.' });
+    }
 
     if (!isAssigned.get(requirement_id, vendor.id)) {
+      discardUploadedFiles(req);
       return res.status(403).json({ error: 'You have not been assigned to this requirement.' });
     }
 
     const existing = getLatestQuotation.get(requirement_id, vendor.id);
     if (existing) {
+      discardUploadedFiles(req);
       return res.status(409).json({ error: 'You have already submitted a quotation for this requirement. Use "Revise Offer" to update it.' });
     }
 
@@ -264,10 +291,13 @@ router.post(
       });
     } catch (err) {
       if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+        discardUploadedFiles(req);
         return res.status(409).json({ error: 'You have already submitted a quotation for this requirement. Use "Revise Offer" to update it.' });
       }
       throw err;
     }
+
+    saveAttachments(info.lastInsertRowid, req.files);
 
     insertActivity.run(vendor.id, 'QUOTATION_SUBMITTED', requirement_id, ip);
     recordAudit({
@@ -275,7 +305,10 @@ router.post(
       performedBy: `vendor:${vendor.id}(${vendor.company_name})`,
       targetType: 'quotation',
       targetId: info.lastInsertRowid,
-      details: { requirement_id, per_unit_price, total_value, lead_time_days },
+      details: {
+        requirement_id, per_unit_price, total_value, lead_time_days,
+        attachments: (req.files || []).map((f) => f.originalname),
+      },
       ip,
     });
 
@@ -305,6 +338,7 @@ router.post(
 
 router.post(
   '/:token/revise',
+  quoteAttachmentUpload,
   [
     body('requirement_id').isInt().withMessage('A requirement must be specified'),
     body('per_unit_price').isFloat({ gt: 0 }).withMessage('Per-unit price must be a positive number'),
@@ -316,40 +350,48 @@ router.post(
   (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      discardUploadedFiles(req);
       return res.status(400).json({ error: 'Validation failed', details: errors.array() });
     }
 
     const vendor = getVendorByToken.get(req.params.token);
-    if (!vendor) return res.status(404).json({ error: 'Vendor portal link not found.' });
+    if (!vendor) {
+      discardUploadedFiles(req);
+      return res.status(404).json({ error: 'Vendor portal link not found.' });
+    }
 
     const { requirement_id, per_unit_price, lead_time_days, validity_period, payment_terms, remarks } = req.body;
 
     const requirement = getRequirementById.get(requirement_id);
-    if (!requirement) return res.status(404).json({ error: 'Requirement not found.' });
+    if (!requirement) {
+      discardUploadedFiles(req);
+      return res.status(404).json({ error: 'Requirement not found.' });
+    }
 
     if (!isAssigned.get(requirement_id, vendor.id)) {
+      discardUploadedFiles(req);
       return res.status(403).json({ error: 'You have not been assigned to this requirement.' });
     }
 
     const current = getLatestQuotation.get(requirement_id, vendor.id);
-    if (!current) {
-      return res.status(409).json({ error: 'You have not submitted a quotation for this requirement yet.' });
-    }
-    if (requirement.status !== 'Open') {
-      return res.status(409).json({ error: 'This requirement is no longer open. Revisions are not accepted.' });
-    }
     const winnerDecided = db.prepare(`
       SELECT 1 FROM quotation_outcomes qo JOIN quotations q ON q.id = qo.quotation_id
       WHERE q.requirement_id = ? AND qo.outcome = 'won'
     `).get(requirement_id);
-    if (winnerDecided) {
-      return res.status(409).json({ error: 'A winner has already been selected for this requirement. Revisions are not accepted.' });
-    }
-    if (new Date(`${requirement.deadline}`).getTime() < Date.now()) {
-      return res.status(409).json({ error: 'The submission deadline has passed. Revisions are not accepted.' });
-    }
-    if (current.revision_number >= MAX_REVISIONS) {
-      return res.status(409).json({ error: `You have used all ${MAX_REVISIONS} allowed revisions for this requirement.` });
+    const reviseBlockedReason = !current
+      ? 'You have not submitted a quotation for this requirement yet.'
+      : requirement.status !== 'Open'
+        ? 'This requirement is no longer open. Revisions are not accepted.'
+        : winnerDecided
+          ? 'A winner has already been selected for this requirement. Revisions are not accepted.'
+          : new Date(`${requirement.deadline}`).getTime() < Date.now()
+            ? 'The submission deadline has passed. Revisions are not accepted.'
+            : current.revision_number >= MAX_REVISIONS
+              ? `You have used all ${MAX_REVISIONS} allowed revisions for this requirement.`
+              : null;
+    if (reviseBlockedReason) {
+      discardUploadedFiles(req);
+      return res.status(409).json({ error: reviseBlockedReason });
     }
 
     const total_value = Number(per_unit_price) * Number(requirement.quantity);
@@ -367,6 +409,8 @@ router.post(
       });
     });
     const info = recordRevision();
+
+    saveAttachments(info.lastInsertRowid, req.files);
 
     insertActivity.run(vendor.id, 'QUOTATION_REVISED', requirement_id, ip);
     recordAudit({

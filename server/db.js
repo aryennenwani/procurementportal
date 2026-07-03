@@ -164,6 +164,41 @@ CREATE TABLE IF NOT EXISTS items (
   default_unit TEXT,
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
+
+-- Files a vendor attaches to a quotation (spec sheets, COAs). Like the quotation
+-- itself, attachments are immutable once submitted — no update or delete path.
+CREATE TABLE IF NOT EXISTS quotation_attachments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  quotation_id INTEGER NOT NULL REFERENCES quotations(id),
+  original_name TEXT NOT NULL,
+  stored_name TEXT UNIQUE NOT NULL,
+  mime_type TEXT NOT NULL,
+  size_bytes INTEGER NOT NULL,
+  uploaded_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
+-- Purchase orders raised automatically when a winning bid is selected. One PO per
+-- requirement. sap_status tracks ERP sync: 'synced' (created in SAP), 'failed'
+-- (SAP rejected/unreachable — retryable), 'local' (SAP not configured; PO exists
+-- in the portal only). The internal po_number is always assigned, so the business
+-- document exists even when SAP is down.
+CREATE TABLE IF NOT EXISTS purchase_orders (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  po_number TEXT UNIQUE NOT NULL,
+  requirement_id INTEGER NOT NULL UNIQUE REFERENCES requirements(id),
+  quotation_id INTEGER NOT NULL REFERENCES quotations(id),
+  vendor_id INTEGER NOT NULL REFERENCES vendors(id),
+  total_amount REAL NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'INR',
+  sap_status TEXT NOT NULL DEFAULT 'local' CHECK (sap_status IN ('local','pending','synced','failed')),
+  sap_po_number TEXT,
+  sap_error TEXT,
+  sap_attempts INTEGER NOT NULL DEFAULT 0,
+  payload_json TEXT,
+  created_by INTEGER NOT NULL REFERENCES managers(id),
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  synced_at TEXT
+);
 `);
 
 // Migration guard: existing database files created before this column set was added
@@ -182,6 +217,8 @@ ensureColumn('managers', 'permissions', "TEXT NOT NULL DEFAULT '[]'");
 // 'procurement_manager' (raise requirements, assign vendors, decide winners) or
 // 'factory_manager' (raise requirements only). Admins are unaffected by this field.
 ensureColumn('managers', 'role', "TEXT NOT NULL DEFAULT 'procurement_manager'");
+// SAP vendor-master supplier code (e.g. "0000100234") — required for a PO to sync to SAP.
+ensureColumn('vendors', 'sap_supplier_code', 'TEXT');
 
 // On first migration, promote the earliest manager to admin so there is always one.
 const adminCount = db.prepare('SELECT COUNT(*) AS cnt FROM managers WHERE is_admin = 1').get().cnt;

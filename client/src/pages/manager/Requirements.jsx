@@ -4,7 +4,7 @@ import { Plus, X, ClipboardList } from 'lucide-react';
 import api, { apiErrorMessage } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
-import { Card, PageLoader, Button, Input, Textarea, Select, EmptyState } from '../../components/Common';
+import { Card, PageLoader, Button, Input, Textarea, Select, EmptyState, Modal, PageHeader } from '../../components/Common';
 import { StatusBadge, RiskBadge } from '../../components/Badges';
 
 const UNITS = ['drums', 'MT', 'litres', 'kg'];
@@ -64,10 +64,8 @@ function CreateRequirementModal({ onClose, onCreated }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white">
+    <Modal onClose={onClose} className="w-full max-w-xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">
           <h2 className="font-semibold text-[#1E2B4A] text-lg">New procurement requirement</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
         </div>
@@ -94,8 +92,7 @@ function CreateRequirementModal({ onClose, onCreated }) {
             <Button type="submit" variant="gold" disabled={submitting}>{submitting ? 'Creating…' : 'Create requirement'}</Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -124,23 +121,21 @@ export default function Requirements() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#1E2B4A]">Requirements</h1>
-          <p className="text-sm text-gray-500 mt-1">Create and manage procurement requirements.</p>
-        </div>
+      <PageHeader title="Requirements" subtitle="Create and manage procurement requirements.">
         <Button variant="gold" onClick={() => setShowModal(true)}>
           <Plus size={16} /> New requirement
         </Button>
-      </div>
+      </PageHeader>
 
       <div className="flex gap-2 flex-wrap">
         {['All', 'Open', 'Pending', 'Closed'].map((s) => (
           <button
             key={s}
             onClick={() => setFilter(s)}
-            className={`px-3.5 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-              filter === s ? 'bg-[#1A56D6] text-white border-[#1A56D6]' : 'border-gray-300 text-gray-600 hover:border-[#1A56D6]'
+            className={`px-3.5 py-1.5 rounded-full text-sm font-semibold border transition-all duration-150 ${
+              filter === s
+                ? 'bg-[#1A56D6] text-white border-[#1A56D6] shadow-sm shadow-[#1A56D6]/30'
+                : 'border-[#D4DEF0] bg-white text-gray-600 hover:border-[#1A56D6]/60 hover:text-[#1A56D6]'
             }`}
           >
             {s}
@@ -159,10 +154,10 @@ export default function Requirements() {
           />
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 stagger-children">
           {filtered.map((r) => (
             <Link key={r.id} to={`/dashboard/requirements/${r.id}`}>
-              <Card className="p-5 h-full hover:border-[#1A56D6]/50 hover:shadow-md transition-all">
+              <Card hover className="p-5 h-full">
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <h3 className="font-semibold text-[#1E2B4A] leading-snug">{r.title}</h3>
                   <StatusBadge status={r.status} />
