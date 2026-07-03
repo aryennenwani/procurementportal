@@ -43,8 +43,9 @@ export default function Login() {
       <div className="hidden lg:flex flex-col justify-between w-[46%] relative overflow-hidden px-14 py-12 sidebar-gradient">
         {/* Decorative glows + grid */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-[#2E6BFF]/25 blur-3xl" />
-          <div className="absolute bottom-10 -left-20 w-80 h-80 rounded-full bg-[#7EA6FF]/15 blur-3xl" />
+          <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-[#2E6BFF]/25 blur-3xl animate-float-a" />
+          <div className="absolute bottom-10 -left-20 w-80 h-80 rounded-full bg-[#7EA6FF]/15 blur-3xl animate-float-b" />
+          <div className="absolute top-1/3 left-1/2 w-52 h-52 rounded-full bg-[#4D7EF2]/10 blur-3xl animate-float-a" style={{ animationDelay: '2.5s' }} />
           <svg className="absolute inset-0 w-full h-full opacity-[0.07]" aria-hidden="true">
             <defs>
               <pattern id="grid" width="42" height="42" patternUnits="userSpaceOnUse">

@@ -62,19 +62,22 @@ export default function NotificationBell() {
     <div className="relative" ref={ref}>
       <button
         onClick={onOpen}
-        className="relative p-2 rounded-lg text-gray-500 hover:text-[#1E2B4A] hover:bg-gray-100 transition-colors"
+        className="relative p-2 rounded-lg text-gray-500 hover:text-[#1A56D6] hover:bg-[#EAF1FF] transition-colors"
         aria-label="Notifications"
       >
         <Bell size={19} />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-600 text-white text-[10px] font-semibold flex items-center justify-center">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
+          <>
+            <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500 animate-ping-soft" />
+            <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-gradient-to-b from-red-500 to-red-600 shadow-sm shadow-red-500/40 text-white text-[10px] font-bold flex items-center justify-center">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          </>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 max-h-[28rem] overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-lg z-50">
+        <div className="absolute right-0 mt-2 w-80 max-h-[28rem] overflow-y-auto bg-white border border-[#E3EAF7] rounded-2xl shadow-2xl shadow-[#0A1A3F]/15 z-50 animate-pop-in">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <p className="font-semibold text-[#1E2B4A] text-sm">Notifications</p>
             {unreadCount > 0 && (

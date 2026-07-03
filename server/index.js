@@ -29,7 +29,9 @@ const purchaseOrderRoutes = require('./routes/purchaseOrders');
 const PORT = process.env.PORT || 4000;
 const IS_PROD = process.env.NODE_ENV === 'production';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
-const allowedOrigins = [FRONTEND_URL, 'http://localhost:5173'];
+// The server's own origin is allowed too — when the built client is served by this
+// process, module scripts are fetched in CORS mode with an Origin header.
+const allowedOrigins = [FRONTEND_URL, 'http://localhost:5173', `http://localhost:${PORT}`];
 
 if (isEmpty()) {
   seed();

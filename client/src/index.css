@@ -83,7 +83,124 @@ body {
   from { stroke-dashoffset: 327; }
 }
 .animate-gauge {
-  animation: gauge-in 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: gauge-in 1.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Floating decorative orbs (login panel, hero) */
+@keyframes float-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(18px, -22px) scale(1.06); }
+}
+@keyframes float-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(-24px, 16px) scale(0.95); }
+}
+.animate-float-a { animation: float-a 9s ease-in-out infinite; }
+.animate-float-b { animation: float-b 11s ease-in-out infinite; }
+
+/* Slowly drifting mesh gradient for hero surfaces */
+@keyframes mesh-drift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.hero-gradient {
+  background-image:
+    radial-gradient(600px 300px at 90% -20%, rgba(88, 141, 255, 0.5), transparent 60%),
+    radial-gradient(500px 300px at -10% 120%, rgba(23, 66, 165, 0.9), transparent 60%),
+    linear-gradient(115deg, #0A2861 0%, #113C96 40%, #1A56D6 75%, #3E77EA 100%);
+  background-size: 200% 200%;
+  animation: mesh-drift 14s ease-in-out infinite;
+}
+
+/* Gradient headline text */
+.text-gradient {
+  background: linear-gradient(100deg, #0B2D71 10%, #1A56D6 55%, #4D7EF2 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Shine sweep across buttons / cards on hover */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn-shine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.35) 50%, transparent 60%);
+  background-size: 250% 100%;
+  background-position: 130% 0;
+  transition: background-position 0.6s ease;
+}
+.btn-shine:hover::after {
+  background-position: -30% 0;
+}
+
+/* Dual-ring brand loader */
+@keyframes ring-spin {
+  to { transform: rotate(360deg); }
+}
+.loader-ring {
+  position: relative;
+  display: inline-block;
+}
+.loader-ring::before,
+.loader-ring::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 3px solid transparent;
+}
+.loader-ring::before {
+  border-top-color: #1A56D6;
+  border-right-color: #1A56D6;
+  animation: ring-spin 0.9s cubic-bezier(0.5, 0.15, 0.5, 0.85) infinite;
+}
+.loader-ring::after {
+  inset: 5px;
+  border-bottom-color: #7EA6FF;
+  border-left-color: #7EA6FF;
+  animation: ring-spin 1.4s cubic-bezier(0.5, 0.15, 0.5, 0.85) infinite reverse;
+}
+
+/* Pinging unread indicator */
+@keyframes ping-soft {
+  0%   { transform: scale(1); opacity: 0.7; }
+  80%, 100% { transform: scale(2.1); opacity: 0; }
+}
+.animate-ping-soft {
+  animation: ping-soft 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Toast entrance + auto-dismiss progress */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(24px) scale(0.96); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+.animate-toast-in {
+  animation: toast-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes toast-progress {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+.toast-progress {
+  animation: toast-progress 5s linear forwards;
+}
+
+/* Dropdown / popover entrance */
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-pop-in {
+  animation: pop-in 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* Staggered list entrance — apply .stagger-children to a container. */
@@ -101,7 +218,8 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-page-in, .animate-modal-in, .animate-fade-in, .animate-gauge,
-  .stagger-children > * {
+  .animate-float-a, .animate-float-b, .animate-toast-in, .animate-pop-in,
+  .animate-ping-soft, .hero-gradient, .stagger-children > * {
     animation: none;
   }
 }

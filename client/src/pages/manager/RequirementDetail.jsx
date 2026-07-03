@@ -7,7 +7,7 @@ import {
 import api, { apiErrorMessage } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
-import { Card, PageLoader, Button, EmptyState, Modal } from '../../components/Common';
+import { Card, PageLoader, Button, EmptyState, Modal, Skeleton, SkeletonTable } from '../../components/Common';
 import { StatusBadge, RiskBadge, OutcomeBadge, SapStatusBadge } from '../../components/Badges';
 
 // Purchase order raised for this requirement's winning bid — with SAP sync state,
@@ -417,7 +417,20 @@ export default function RequirementDetail() {
     }
   };
 
-  if (loading) return <PageLoader />;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-4 w-40" />
+        <div className="space-y-2.5">
+          <Skeleton className="h-8 w-72 max-w-full" />
+          <Skeleton className="h-4 w-96 max-w-full" />
+          <Skeleton className="h-4 w-80 max-w-full" />
+        </div>
+        <Skeleton className="h-20 w-full !rounded-2xl" />
+        <SkeletonTable rows={4} cols={7} />
+      </div>
+    );
+  }
   if (!data) return null;
 
   const { requirement, assigned_vendors, quotations, bids_hidden, partiality } = data;

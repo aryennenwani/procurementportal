@@ -4,7 +4,7 @@ import { Plus, X, ClipboardList } from 'lucide-react';
 import api, { apiErrorMessage } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
-import { Card, PageLoader, Button, Input, Textarea, Select, EmptyState, Modal, PageHeader } from '../../components/Common';
+import { Card, PageLoader, Button, Input, Textarea, Select, EmptyState, Modal, PageHeader, SkeletonCards } from '../../components/Common';
 import { StatusBadge, RiskBadge } from '../../components/Badges';
 
 const UNITS = ['drums', 'MT', 'litres', 'kg'];
@@ -144,7 +144,7 @@ export default function Requirements() {
       </div>
 
       {loading ? (
-        <PageLoader />
+        <SkeletonCards count={6} />
       ) : filtered.length === 0 ? (
         <Card>
           <EmptyState

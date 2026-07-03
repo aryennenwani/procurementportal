@@ -3,7 +3,7 @@ import { Plus, X, UserCog, Trash2, Shield, ShieldCheck, Settings2 } from 'lucide
 import api, { apiErrorMessage } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
-import { Card, PageLoader, Button, Input, Select, EmptyState } from '../../components/Common';
+import { Card, SkeletonTable, Button, Input, Select, EmptyState } from '../../components/Common';
 
 const EMPTY_FORM = { name: '', email: '', password: '', role: 'procurement_manager' };
 
@@ -234,7 +234,7 @@ export default function ManagersList() {
       </div>
 
       {loading ? (
-        <PageLoader />
+        <SkeletonTable rows={5} cols={5} />
       ) : managers.length === 0 ? (
         <Card>
           <EmptyState icon={<UserCog size={32} className="text-gray-300" />} title="No managers yet." />

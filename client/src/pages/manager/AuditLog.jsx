@@ -2,7 +2,7 @@ import { Fragment, useEffect, useState } from 'react';
 import { ScrollText, Search, Lock } from 'lucide-react';
 import api, { apiErrorMessage } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
-import { Card, PageLoader, Input, EmptyState } from '../../components/Common';
+import { Card, SkeletonTable, Input, EmptyState } from '../../components/Common';
 
 export default function AuditLog() {
   const [entries, setEntries] = useState([]);
@@ -69,7 +69,7 @@ export default function AuditLog() {
       </Card>
 
       {loading ? (
-        <PageLoader />
+        <SkeletonTable rows={8} cols={5} />
       ) : entries.length === 0 ? (
         <Card><EmptyState
           icon={<ScrollText size={32} className="text-gray-300" />}

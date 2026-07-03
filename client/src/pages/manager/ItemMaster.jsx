@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Plus, X, Package, Trash2, Pencil, Upload } from 'lucide-react';
 import api, { apiErrorMessage } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
-import { Card, PageLoader, Button, Input, Select, EmptyState } from '../../components/Common';
+import { Card, SkeletonTable, Button, Input, Select, EmptyState } from '../../components/Common';
 
 const UNITS = ['drums', 'MT', 'litres', 'kg'];
 
@@ -158,7 +158,7 @@ export default function ItemMaster() {
       </p>
 
       {loading ? (
-        <PageLoader />
+        <SkeletonTable rows={6} cols={4} />
       ) : items.length === 0 ? (
         <Card>
           <EmptyState icon={<Package size={32} className="text-gray-300" />} title="No items yet." subtitle="Add items individually or upload an Excel sheet to get started." />

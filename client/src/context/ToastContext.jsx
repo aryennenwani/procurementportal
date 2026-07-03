@@ -24,33 +24,50 @@ export function ToastProvider({ children }) {
     info: (msg) => push(msg, 'info'),
   };
 
-  const ICONS = {
-    success: <CheckCircle2 size={18} className="text-emerald-600" />,
-    error: <XCircle size={18} className="text-red-600" />,
-    info: <Info size={18} className="text-gray-500" />,
-  };
-  const BORDERS = {
-    success: 'border-emerald-300',
-    error: 'border-red-300',
-    info: 'border-gray-300',
+  const STYLES = {
+    success: {
+      icon: <CheckCircle2 size={16} />,
+      chip: 'bg-emerald-100 text-emerald-600',
+      accent: 'bg-gradient-to-b from-emerald-400 to-emerald-600',
+      progress: 'bg-emerald-500/70',
+    },
+    error: {
+      icon: <XCircle size={16} />,
+      chip: 'bg-red-100 text-red-600',
+      accent: 'bg-gradient-to-b from-red-400 to-red-600',
+      progress: 'bg-red-500/70',
+    },
+    info: {
+      icon: <Info size={16} />,
+      chip: 'bg-[#EAF1FF] text-[#1A56D6]',
+      accent: 'bg-gradient-to-b from-[#7EA6FF] to-[#1A56D6]',
+      progress: 'bg-[#1A56D6]/60',
+    },
   };
 
   return (
     <ToastContext.Provider value={toast}>
       {children}
-      <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 w-80 max-w-[90vw]">
-        {toasts.map((t) => (
-          <div
-            key={t.id}
-            className={`flex items-start gap-2 bg-white border ${BORDERS[t.type]} shadow-lg rounded-lg px-4 py-3 text-sm text-[#1E2B4A] animate-in fade-in slide-in-from-bottom-2`}
-          >
-            {ICONS[t.type]}
-            <p className="flex-1">{t.message}</p>
-            <button onClick={() => remove(t.id)} className="text-gray-400 hover:text-gray-700">
-              <X size={14} />
-            </button>
-          </div>
-        ))}
+      <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2.5 w-[340px] max-w-[90vw]">
+        {toasts.map((t) => {
+          const s = STYLES[t.type] || STYLES.info;
+          return (
+            <div
+              key={t.id}
+              className="relative flex items-start gap-3 bg-white/95 backdrop-blur border border-[#E3EAF7] shadow-xl shadow-[#0A1A3F]/10 rounded-xl pl-4 pr-3 py-3.5 text-sm text-[#1E2B4A] overflow-hidden animate-toast-in"
+            >
+              <span className={`absolute left-0 top-0 bottom-0 w-1 ${s.accent}`} />
+              <span className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${s.chip}`}>
+                {s.icon}
+              </span>
+              <p className="flex-1 pt-0.5 font-medium leading-snug">{t.message}</p>
+              <button onClick={() => remove(t.id)} className="text-gray-400 hover:text-gray-700 shrink-0 mt-0.5 transition-colors">
+                <X size={14} />
+              </button>
+              <span className={`absolute bottom-0 left-0 h-[2.5px] toast-progress ${s.progress}`} />
+            </div>
+          );
+        })}
       </div>
     </ToastContext.Provider>
   );

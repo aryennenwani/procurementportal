@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { FileCheck2, Download, RefreshCw, PlugZap, AlertTriangle } from 'lucide-react';
 import api, { apiErrorMessage } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
-import { Card, PageLoader, Button, EmptyState, PageHeader } from '../../components/Common';
+import { Card, Button, EmptyState, PageHeader, Skeleton, SkeletonTable } from '../../components/Common';
 import { SapStatusBadge } from '../../components/Badges';
 
 export default function PurchaseOrders() {
@@ -60,7 +60,17 @@ export default function PurchaseOrders() {
     }
   };
 
-  if (loading) return <PageLoader />;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-4 w-96 max-w-full" />
+        </div>
+        <SkeletonTable rows={5} cols={7} />
+      </div>
+    );
+  }
 
   const totalValue = orders.reduce((sum, o) => sum + o.total_amount, 0);
 

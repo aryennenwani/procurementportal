@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Plus, X, Users, History, Boxes } from 'lucide-react';
 import api, { apiErrorMessage } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
-import { Card, PageLoader, Button, Input, EmptyState, CopyButton, Modal, PageHeader } from '../../components/Common';
+import { Card, PageLoader, Button, Input, EmptyState, CopyButton, Modal, PageHeader, SkeletonCards } from '../../components/Common';
 
 const EMPTY_FORM = { company_name: '', contact_person: '', email: '', phone: '', category: '', sap_supplier_code: '' };
 
@@ -179,7 +179,7 @@ export default function Vendors() {
       </PageHeader>
 
       {loading ? (
-        <PageLoader />
+        <SkeletonCards count={6} />
       ) : vendors.length === 0 ? (
         <Card>
           <EmptyState icon={<Users size={32} className="text-gray-300" />} title="No vendors added yet." />

@@ -293,7 +293,11 @@ router.get('/:id/quotations', [param('id').isInt().withMessage('Invalid requirem
   });
 
   res.json({
-    requirement: { ...requirement, created_at_ist: toIST(requirement.created_at) },
+    requirement: {
+      ...requirement,
+      created_at_ist: toIST(requirement.created_at),
+      deadline_ist: toIST(requirement.deadline),
+    },
     assigned_vendors: assignedVendors,
     quotations: safeQuotations,
     bids_hidden: bidsHidden,

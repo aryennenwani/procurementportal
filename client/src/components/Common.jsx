@@ -1,20 +1,101 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Copy, Check, Loader2 } from 'lucide-react';
 
 export function Spinner({ size = 20, className = '' }) {
   return <Loader2 size={size} className={`animate-spin text-[#1A56D6] ${className}`} />;
 }
 
-export function PageLoader() {
+export function PageLoader({ label = 'Loading' }) {
   return (
-    <div className="flex items-center justify-center py-24">
-      <Spinner size={28} />
+    <div className="flex flex-col items-center justify-center py-24 gap-4 animate-fade-in">
+      <span className="loader-ring w-10 h-10" />
+      <p className="text-sm font-medium text-[#8A97B5] animate-pulse">{label}…</p>
     </div>
   );
 }
 
 export function Skeleton({ className = '' }) {
   return <div className={`skeleton ${className}`} />;
+}
+
+// Skeleton placeholders that mirror the real layouts while data loads.
+export function SkeletonStatRow({ count = 4 }) {
+  return (
+    <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-${count} gap-4`}>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="card-surface p-5 flex items-center gap-4">
+          <Skeleton className="w-11 h-11 !rounded-xl shrink-0" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-6 w-14" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function SkeletonCards({ count = 6 }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="card-surface p-5 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <Skeleton className="h-5 w-2/3" />
+            <Skeleton className="h-6 w-16 !rounded-full" />
+          </div>
+          <Skeleton className="h-3.5 w-full" />
+          <Skeleton className="h-3.5 w-4/5" />
+          <div className="pt-3 flex justify-between">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-3 w-14" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function SkeletonTable({ rows = 5, cols = 6 }) {
+  return (
+    <div className="table-shell p-0 overflow-hidden">
+      <div className="px-4 py-3.5 border-b border-[#E9EFFA] flex gap-6">
+        {Array.from({ length: cols }).map((_, i) => (
+          <Skeleton key={i} className="h-3.5 flex-1" />
+        ))}
+      </div>
+      {Array.from({ length: rows }).map((_, r) => (
+        <div key={r} className="px-4 py-4 border-b border-[#F0F4FC] last:border-0 flex gap-6 items-center">
+          {Array.from({ length: cols }).map((_, c) => (
+            <Skeleton key={c} className={`h-4 flex-1 ${c === 0 ? 'max-w-[140px]' : ''}`} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Eased count-up for stat values — makes numbers feel alive on load.
+export function AnimatedNumber({ value, duration = 900 }) {
+  const [display, setDisplay] = useState(0);
+  const startRef = useRef(null);
+
+  useEffect(() => {
+    const target = Number(value) || 0;
+    if (target === 0) { setDisplay(0); return undefined; }
+    let frame;
+    const step = (ts) => {
+      if (startRef.current === null) startRef.current = ts;
+      const progress = Math.min(1, (ts - startRef.current) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(target * eased));
+      if (progress < 1) frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => { cancelAnimationFrame(frame); startRef.current = null; };
+  }, [value, duration]);
+
+  return <>{display.toLocaleString('en-IN')}</>;
 }
 
 export function Card({ children, className = '', hover = false }) {
@@ -27,8 +108,8 @@ export function Card({ children, className = '', hover = false }) {
 
 export function Button({ children, variant = 'primary', className = '', disabled, ...props }) {
   const variants = {
-    primary: 'bg-[#1E2B4A] text-white hover:bg-[#0F1F3D] shadow-sm shadow-[#1E2B4A]/20 disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none',
-    gold:    'bg-gradient-to-b from-[#2563EB] to-[#1A56D6] text-white hover:from-[#1D5AE0] hover:to-[#1548C2] shadow-sm shadow-[#1A56D6]/30 disabled:from-gray-300 disabled:to-gray-300 disabled:text-gray-500 disabled:shadow-none',
+    primary: 'btn-shine bg-[#1E2B4A] text-white hover:bg-[#0F1F3D] shadow-sm shadow-[#1E2B4A]/20 disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none',
+    gold:    'btn-shine bg-gradient-to-b from-[#2563EB] to-[#1A56D6] text-white hover:from-[#1D5AE0] hover:to-[#1548C2] shadow-md shadow-[#1A56D6]/30 hover:shadow-lg hover:shadow-[#1A56D6]/40 disabled:from-gray-300 disabled:to-gray-300 disabled:text-gray-500 disabled:shadow-none',
     outline: 'border border-[#D4DEF0] bg-white text-[#1E2B4A] hover:bg-[#F5F8FF] hover:border-[#1A56D6]/50 disabled:text-gray-400 disabled:hover:bg-white',
     ghost:   'text-[#1E2B4A] hover:bg-[#EDF2FC] disabled:text-gray-400',
     danger:  'bg-gradient-to-b from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 shadow-sm shadow-red-600/25 disabled:from-gray-300 disabled:to-gray-300 disabled:shadow-none',
