@@ -14,9 +14,12 @@ function requireAuth(req, res, next) {
   try {
     const payload = jwt.verify(token, JWT_SECRET);
     // Fetch fresh data on every request so permission/role changes take effect immediately.
-    const row = db.prepare(
-      'SELECT id, email, name, is_admin, is_primary_admin, permissions, role FROM managers WHERE id = ?'
-    ).get(payload.id);
+    const row = db.prepare(`
+      SELECT m.id, m.email, m.name, m.is_admin, m.is_primary_admin, m.permissions, m.role,
+             m.plant_id, p.code AS plant_code, p.name AS plant_name
+      FROM managers m LEFT JOIN plants p ON p.id = m.plant_id
+      WHERE m.id = ?
+    `).get(payload.id);
     if (!row) return res.status(401).json({ error: 'Account not found. Please log in again.' });
 
     req.manager = {
@@ -27,6 +30,9 @@ function requireAuth(req, res, next) {
       is_primary_admin: row.is_primary_admin || 0,
       permissions: JSON.parse(row.permissions || '[]'),
       role: row.role || 'procurement_manager',
+      plant_id: row.plant_id || null,
+      plant_code: row.plant_code || null,
+      plant_name: row.plant_name || null,
     };
     next();
   } catch (err) {

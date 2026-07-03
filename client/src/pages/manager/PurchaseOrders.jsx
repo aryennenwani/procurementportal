@@ -131,7 +131,9 @@ export default function PurchaseOrders() {
                       <Link to={`/dashboard/requirements/${po.requirement_id}`} className="font-medium text-[#1E2B4A] hover:text-[#1A56D6] hover:underline">
                         {po.requirement_title}
                       </Link>
-                      <p className="text-xs text-[#8A97B5] mt-0.5">{po.quantity} {po.unit}</p>
+                      <p className="text-xs text-[#8A97B5] mt-0.5">
+                        {po.quantity} {po.unit}{po.plant_code ? ` • Plant ${po.plant_code}` : ''}
+                      </p>
                     </td>
                     <td className="px-4 py-3.5">
                       <p className="text-[#1E2B4A] font-medium">{po.vendor_name}</p>

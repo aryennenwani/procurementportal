@@ -13,12 +13,14 @@ router.use(requireAdmin);
 const ALLOWED_PERMISSIONS = ['view_compliance', 'view_audit'];
 const ALLOWED_ROLES = ['procurement_manager', 'factory_manager'];
 
-const listManagers = db.prepare(
-  'SELECT id, email, name, is_admin, is_primary_admin, permissions, role, created_at FROM managers ORDER BY created_at ASC'
-);
-const getManagerById = db.prepare(
-  'SELECT id, email, name, is_admin, is_primary_admin, permissions, role, created_at FROM managers WHERE id = ?'
-);
+const MANAGER_SELECT = `
+  SELECT m.id, m.email, m.name, m.is_admin, m.is_primary_admin, m.permissions, m.role, m.created_at,
+         m.plant_id, p.code AS plant_code, p.name AS plant_name
+  FROM managers m LEFT JOIN plants p ON p.id = m.plant_id
+`;
+const listManagers = db.prepare(`${MANAGER_SELECT} ORDER BY m.created_at ASC`);
+const getManagerById = db.prepare(`${MANAGER_SELECT} WHERE m.id = ?`);
+const getPlantById = db.prepare('SELECT * FROM plants WHERE id = ?');
 
 function managerPublic(m) {
   return { ...m, permissions: JSON.parse(m.permissions || '[]'), role: m.role || 'procurement_manager' };
@@ -35,6 +37,7 @@ router.post(
     body('email').isEmail().withMessage('A valid email address is required').normalizeEmail(),
     body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
     body('role').optional().isIn(ALLOWED_ROLES).withMessage('Invalid role'),
+    body('plant_id').optional({ checkFalsy: true }).isInt().withMessage('Invalid plant'),
   ],
   (req, res) => {
     const errors = validationResult(req);
@@ -45,17 +48,26 @@ router.post(
     const existing = db.prepare('SELECT id FROM managers WHERE email = ?').get(email.toLowerCase().trim());
     if (existing) return res.status(409).json({ error: 'A manager with this email already exists.' });
 
+    let plantId = null;
+    if (req.body.plant_id) {
+      const plant = getPlantById.get(req.body.plant_id);
+      if (!plant) {
+        return res.status(400).json({ error: 'Validation failed', details: [{ path: 'plant_id', msg: 'Selected plant does not exist.' }] });
+      }
+      plantId = plant.id;
+    }
+
     const password_hash = bcrypt.hashSync(password, 10);
     const info = db.prepare(
-      'INSERT INTO managers (email, password_hash, name, is_admin, role) VALUES (?, ?, ?, 0, ?)'
-    ).run(email.toLowerCase().trim(), password_hash, name.trim(), role);
+      'INSERT INTO managers (email, password_hash, name, is_admin, role, plant_id) VALUES (?, ?, ?, 0, ?, ?)'
+    ).run(email.toLowerCase().trim(), password_hash, name.trim(), role, plantId);
 
     recordAudit({
       actionType: 'MANAGER_CREATED',
       performedBy: `manager:${req.manager.id}(${req.manager.email})`,
       targetType: 'manager',
       targetId: info.lastInsertRowid,
-      details: { name, email, role },
+      details: { name, email, role, plant_id: plantId },
       ip: getClientIp(req),
     });
 
@@ -150,6 +162,42 @@ router.patch(
       targetType: 'manager',
       targetId: target.id,
       details: { name: target.name, role: req.body.role },
+      ip: getClientIp(req),
+    });
+
+    res.json({ manager: managerPublic(getManagerById.get(target.id)) });
+  }
+);
+
+// Assign (or clear) the plant a manager belongs to.
+router.patch(
+  '/:id/plant',
+  [
+    param('id').isInt().withMessage('Invalid manager id'),
+    body('plant_id').optional({ nullable: true }).custom((v) => v === null || Number.isInteger(Number(v))).withMessage('Invalid plant'),
+  ],
+  (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ error: 'Validation failed', details: errors.array() });
+
+    const target = db.prepare('SELECT * FROM managers WHERE id = ?').get(req.params.id);
+    if (!target) return res.status(404).json({ error: 'Manager not found.' });
+
+    let plantId = null;
+    if (req.body.plant_id) {
+      const plant = getPlantById.get(req.body.plant_id);
+      if (!plant) return res.status(400).json({ error: 'Selected plant does not exist.' });
+      plantId = plant.id;
+    }
+
+    db.prepare('UPDATE managers SET plant_id = ? WHERE id = ?').run(plantId, target.id);
+
+    recordAudit({
+      actionType: 'MANAGER_PLANT_UPDATED',
+      performedBy: `manager:${req.manager.id}(${req.manager.email})`,
+      targetType: 'manager',
+      targetId: target.id,
+      details: { name: target.name, from_plant_id: target.plant_id || null, to_plant_id: plantId },
       ip: getClientIp(req),
     });
 

@@ -165,6 +165,16 @@ CREATE TABLE IF NOT EXISTS items (
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 
+-- Plant master — the company's factories/receiving locations. Each manager can be
+-- assigned a plant; requirements snapshot the raiser's plant code at creation so the
+-- purchase order (and its SAP sync) ships to the plant that actually asked for it.
+CREATE TABLE IF NOT EXISTS plants (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  code TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
 -- Files a vendor attaches to a quotation (spec sheets, COAs). Like the quotation
 -- itself, attachments are immutable once submitted — no update or delete path.
 CREATE TABLE IF NOT EXISTS quotation_attachments (
@@ -219,6 +229,11 @@ ensureColumn('managers', 'permissions', "TEXT NOT NULL DEFAULT '[]'");
 ensureColumn('managers', 'role', "TEXT NOT NULL DEFAULT 'procurement_manager'");
 // SAP vendor-master supplier code (e.g. "0000100234") — required for a PO to sync to SAP.
 ensureColumn('vendors', 'sap_supplier_code', 'TEXT');
+// The plant a manager belongs to (drives the receiving plant on their requirements).
+ensureColumn('managers', 'plant_id', 'INTEGER REFERENCES plants(id)');
+// Snapshot of the raiser's plant code at creation time — immutable like the rest of
+// the requirement, even if the manager later moves plants.
+ensureColumn('requirements', 'plant_code', 'TEXT');
 
 // On first migration, promote the earliest manager to admin so there is always one.
 const adminCount = db.prepare('SELECT COUNT(*) AS cnt FROM managers WHERE is_admin = 1').get().cnt;

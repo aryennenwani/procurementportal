@@ -5,7 +5,7 @@ import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { Card, SkeletonTable, Button, Input, Select, EmptyState } from '../../components/Common';
 
-const EMPTY_FORM = { name: '', email: '', password: '', role: 'procurement_manager' };
+const EMPTY_FORM = { name: '', email: '', password: '', role: 'procurement_manager', plant_id: '' };
 
 const PERMISSION_LABELS = {
   view_compliance: 'Compliance',
@@ -18,7 +18,7 @@ const ROLE_LABELS = {
   factory_manager: 'Factory Manager',
 };
 
-function AddManagerModal({ onClose, onCreated }) {
+function AddManagerModal({ plants, onClose, onCreated }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -31,7 +31,7 @@ function AddManagerModal({ onClose, onCreated }) {
     setErrors({});
     setSubmitting(true);
     try {
-      const { data } = await api.post('/managers', form);
+      const { data } = await api.post('/managers', { ...form, plant_id: form.plant_id || undefined });
       toast.success(`${data.manager.name} added as a procurement manager.`);
       onCreated(data.manager);
     } catch (err) {
@@ -62,8 +62,16 @@ function AddManagerModal({ onClose, onCreated }) {
             <option value="procurement_manager">Procurement Manager</option>
             <option value="factory_manager">Factory Manager</option>
           </Select>
+          <Select label="Plant" value={form.plant_id} onChange={set('plant_id')} error={errors.plant_id}>
+            <option value="">No plant assigned</option>
+            {plants.map((p) => <option key={p.id} value={p.id}>{p.code} — {p.name}</option>)}
+          </Select>
+          {plants.length === 0 && (
+            <p className="text-xs text-amber-600">No plants defined yet — add them under Item Master → Plants so requirements carry the right receiving plant.</p>
+          )}
           <p className="text-xs text-gray-400">
             Factory managers can raise requirements only. Procurement managers can also assign vendors and decide winning bids.
+            Requirements they raise are stamped with their plant, which becomes the receiving plant on the SAP purchase order.
             New managers cannot view Compliance or Audit Log unless you grant access via the permissions editor.
           </p>
           <div className="flex justify-end gap-3 pt-1">
@@ -143,19 +151,22 @@ function PermissionsModal({ manager: target, onClose, onUpdated }) {
 
 export default function ManagersList() {
   const [managers, setManagers] = useState([]);
+  const [plants, setPlants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [permTarget, setPermTarget] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [togglingAdmin, setTogglingAdmin] = useState(null);
   const [changingRole, setChangingRole] = useState(null);
+  const [changingPlant, setChangingPlant] = useState(null);
   const toast = useToast();
   const { isPrimaryAdmin, manager: self } = useAuth();
 
   const load = async () => {
     try {
-      const { data } = await api.get('/managers');
-      setManagers(data.managers);
+      const [managersRes, plantsRes] = await Promise.all([api.get('/managers'), api.get('/plants')]);
+      setManagers(managersRes.data.managers);
+      setPlants(plantsRes.data.plants);
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Could not load managers.'));
     } finally {
@@ -164,6 +175,22 @@ export default function ManagersList() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const changePlant = async (m, plantIdRaw) => {
+    const plantId = plantIdRaw ? Number(plantIdRaw) : null;
+    if (plantId === (m.plant_id || null)) return;
+    setChangingPlant(m.id);
+    try {
+      const { data } = await api.patch(`/managers/${m.id}/plant`, { plant_id: plantId });
+      const plant = plants.find((p) => p.id === plantId);
+      toast.success(plant ? `${m.name} assigned to plant ${plant.code}.` : `Plant cleared for ${m.name}.`);
+      setManagers((prev) => prev.map((x) => (x.id === m.id ? data.manager : x)));
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Could not update plant.'));
+    } finally {
+      setChangingPlant(null);
+    }
+  };
 
   const removeManager = async (m) => {
     if (!window.confirm(`Remove ${m.name} (${m.email})? They will lose portal access immediately.`)) return;
@@ -247,6 +274,7 @@ export default function ManagersList() {
                 <th className="text-left px-5 py-3 font-medium">Name</th>
                 <th className="text-left px-5 py-3 font-medium">Email</th>
                 <th className="text-left px-5 py-3 font-medium">Role</th>
+                <th className="text-left px-5 py-3 font-medium">Plant</th>
                 <th className="text-left px-5 py-3 font-medium">Access</th>
                 <th className="px-5 py-3"></th>
               </tr>
@@ -272,6 +300,18 @@ export default function ManagersList() {
                         <option value="factory_manager">Factory Manager</option>
                       </select>
                     )}
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <select
+                      value={m.plant_id || ''}
+                      onChange={(e) => changePlant(m, e.target.value)}
+                      disabled={changingPlant === m.id}
+                      className="text-xs font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-600 border-none focus:outline-none focus:ring-2 focus:ring-[#1A56D6]/40 disabled:opacity-50 max-w-[160px]"
+                      title="Receiving plant stamped on requirements this manager raises"
+                    >
+                      <option value="">No plant</option>
+                      {plants.map((p) => <option key={p.id} value={p.id}>{p.code} — {p.name}</option>)}
+                    </select>
                   </td>
                   <td className="px-5 py-3.5">
                     {m.is_admin ? (
@@ -337,6 +377,7 @@ export default function ManagersList() {
 
       {showAddModal && (
         <AddManagerModal
+          plants={plants}
           onClose={() => setShowAddModal(false)}
           onCreated={(m) => { setShowAddModal(false); setManagers((prev) => [...prev, m]); }}
         />

@@ -52,7 +52,8 @@ function buildSapPayload({ requirement, quotation, vendor }) {
     to_PurchaseOrderItem: [
       {
         PurchaseOrderItem: '10',
-        Plant: cfg.plant,
+        // The requirement carries the raising manager's plant; SAP_PLANT is only a fallback.
+        Plant: requirement.plant_code || cfg.plant,
         PurchaseOrderItemText: String(requirement.title).slice(0, 40),
         OrderQuantity: String(requirement.quantity),
         PurchaseOrderQuantityUnit: String(requirement.unit).slice(0, 3).toUpperCase(),

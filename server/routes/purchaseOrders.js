@@ -11,7 +11,7 @@ const router = express.Router();
 router.use(requireAuth);
 
 const PO_SELECT = `
-  SELECT po.*, r.title AS requirement_title, r.quantity, r.unit, r.grade,
+  SELECT po.*, r.title AS requirement_title, r.quantity, r.unit, r.grade, r.plant_code,
          v.company_name AS vendor_name, v.contact_person AS vendor_contact,
          v.email AS vendor_email, v.phone AS vendor_phone, v.sap_supplier_code,
          q.per_unit_price, q.payment_terms, q.lead_time_days, q.validity_period,

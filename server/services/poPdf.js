@@ -8,7 +8,7 @@ const { toIST } = require('../utils');
 // One PO row joined with everything the document (and email) needs.
 function getFullPurchaseOrder(id) {
   return db.prepare(`
-    SELECT po.*, r.title AS requirement_title, r.quantity, r.unit, r.grade,
+    SELECT po.*, r.title AS requirement_title, r.quantity, r.unit, r.grade, r.plant_code,
            v.company_name AS vendor_name, v.contact_person AS vendor_contact,
            v.email AS vendor_email, v.phone AS vendor_phone, v.sap_supplier_code,
            q.per_unit_price, q.payment_terms, q.lead_time_days, q.validity_period,
@@ -56,6 +56,7 @@ function renderPoPdf(po, stream) {
   const meta = [
     ['PO Date', toIST(po.created_at)],
     ['Raised By', po.created_by_name],
+    ...(po.plant_code ? [['Receiving Plant', po.plant_code]] : []),
     ['ERP Status', po.sap_status === 'synced' ? `Synced to SAP (${po.sap_po_number})` : po.sap_status === 'failed' ? 'SAP sync failed — pending retry' : po.sap_status === 'pending' ? 'SAP sync in progress' : 'Portal record (SAP not connected)'],
     ['Currency', po.currency],
   ];
@@ -64,7 +65,7 @@ function renderPoPdf(po, stream) {
     doc.fontSize(9).font('Helvetica').fillColor('#111A2E').text(String(value), metaX, y + i * 22 + 10, { width: 215 });
   });
 
-  y += 100;
+  y += meta.length > 4 ? 122 : 100;
 
   // Item table
   doc.rect(50, y, doc.page.width - 100, 22).fill('#EEF3FE');

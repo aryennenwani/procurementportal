@@ -453,6 +453,7 @@ export default function RequirementDetail() {
           <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-gray-500 mt-3">
             <span><strong className="text-[#1E2B4A] font-medium">Quantity:</strong> {requirement.quantity} {requirement.unit}</span>
             {requirement.grade && <span><strong className="text-[#1E2B4A] font-medium">Grade:</strong> {requirement.grade}</span>}
+            {requirement.plant_code && <span><strong className="text-[#1E2B4A] font-medium">Plant:</strong> {requirement.plant_code}</span>}
             <span><strong className="text-[#1E2B4A] font-medium">Deadline:</strong> {requirement.deadline_ist}</span>
             <span><strong className="text-[#1E2B4A] font-medium">Created:</strong> {requirement.created_at_ist}</span>
             <span><strong className="text-[#1E2B4A] font-medium">Raised by:</strong> {requirement.created_by_name}</span>

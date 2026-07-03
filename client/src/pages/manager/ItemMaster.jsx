@@ -1,8 +1,119 @@
 import { useEffect, useRef, useState } from 'react';
-import { Plus, X, Package, Trash2, Pencil, Upload } from 'lucide-react';
+import { Plus, X, Package, Trash2, Pencil, Upload, Factory } from 'lucide-react';
 import api, { apiErrorMessage } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { Card, SkeletonTable, Button, Input, Select, EmptyState } from '../../components/Common';
+
+// Plant master — the factories/receiving locations managers can be assigned to.
+// The plant code lands on the SAP purchase order as the receiving plant.
+function PlantsSection() {
+  const [plants, setPlants] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState({ code: '', name: '' });
+  const [adding, setAdding] = useState(false);
+  const [deleting, setDeleting] = useState(null);
+  const toast = useToast();
+
+  useEffect(() => {
+    api.get('/plants')
+      .then(({ data }) => setPlants(data.plants))
+      .catch((err) => toast.error(apiErrorMessage(err, 'Could not load plants.')))
+      .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const addPlant = async (e) => {
+    e.preventDefault();
+    if (!form.code.trim() || !form.name.trim()) return;
+    setAdding(true);
+    try {
+      const { data } = await api.post('/plants', form);
+      setPlants((prev) => [...prev, data.plant].sort((a, b) => a.code.localeCompare(b.code)));
+      setForm({ code: '', name: '' });
+      toast.success(`Plant ${data.plant.code} added.`);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Could not add plant.'));
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const removePlant = async (plant) => {
+    if (!window.confirm(`Delete plant ${plant.code} — ${plant.name}?`)) return;
+    setDeleting(plant.id);
+    try {
+      await api.delete(`/plants/${plant.id}`);
+      setPlants((prev) => prev.filter((p) => p.id !== plant.id));
+      toast.success(`Plant ${plant.code} deleted.`);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Could not delete plant.'));
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  return (
+    <Card className="p-6">
+      <div className="flex items-start gap-3 mb-4">
+        <div className="w-9 h-9 rounded-xl bg-[#EAF1FF] text-[#1A56D6] flex items-center justify-center shrink-0">
+          <Factory size={17} />
+        </div>
+        <div>
+          <h2 className="font-semibold text-[#101C3B]">Plants</h2>
+          <p className="text-sm text-[#64748F] mt-0.5">
+            Factories / receiving locations. Assign each manager a plant on the Managers page —
+            requirements they raise are stamped with it, and it becomes the receiving plant on the SAP purchase order.
+          </p>
+        </div>
+      </div>
+
+      <form onSubmit={addPlant} className="flex flex-col sm:flex-row gap-2 mb-4">
+        <Input
+          value={form.code}
+          onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
+          placeholder="SAP plant code, e.g. 1100"
+          maxLength={10}
+          className="sm:!w-48"
+          required
+        />
+        <div className="flex-1">
+          <Input
+            value={form.name}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            placeholder="Plant name, e.g. Dahej Factory"
+            required
+          />
+        </div>
+        <Button type="submit" variant="gold" disabled={adding} className="shrink-0">
+          <Plus size={15} /> {adding ? 'Adding…' : 'Add plant'}
+        </Button>
+      </form>
+
+      {loading ? (
+        <SkeletonTable rows={2} cols={3} />
+      ) : plants.length === 0 ? (
+        <p className="text-sm text-gray-400 text-center py-4">No plants defined yet.</p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {plants.map((p) => (
+            <span key={p.id} className="inline-flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-lg bg-[#F5F8FF] border border-[#E3EAF7] text-sm">
+              <span className="font-bold text-[#1A56D6]">{p.code}</span>
+              <span className="text-[#1E2B4A]">{p.name}</span>
+              <button
+                onClick={() => removePlant(p)}
+                disabled={deleting === p.id}
+                className="text-gray-400 hover:text-red-600 transition-colors disabled:opacity-40"
+                title="Delete plant"
+              >
+                <X size={13} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
 
 const UNITS = ['drums', 'MT', 'litres', 'kg'];
 
@@ -205,6 +316,8 @@ export default function ItemMaster() {
           </table>
         </div>
       )}
+
+      <PlantsSection />
 
       {showModal && (
         <ItemModal

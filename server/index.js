@@ -25,6 +25,7 @@ const notificationRoutes = require('./routes/notifications');
 const managerAdminRoutes = require('./routes/managerAdmin');
 const itemRoutes = require('./routes/items');
 const purchaseOrderRoutes = require('./routes/purchaseOrders');
+const plantRoutes = require('./routes/plants');
 
 const PORT = process.env.PORT || 4000;
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -76,6 +77,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/managers', managerAdminRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/purchase-orders', purchaseOrderRoutes);
+app.use('/api/plants', plantRoutes);
 
 // Unmatched API routes → JSON 404
 app.use('/api', (req, res) => {

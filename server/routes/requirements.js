@@ -14,8 +14,8 @@ const VALID_UNITS = ['drums', 'MT', 'litres', 'kg'];
 const VALID_STATUSES = ['Open', 'Pending', 'Closed'];
 
 const insertRequirement = db.prepare(`
-  INSERT INTO requirements (title, description, quantity, unit, grade, deadline, notes, status, created_by)
-  VALUES (@title, @description, @quantity, @unit, @grade, @deadline, @notes, 'Open', @created_by)
+  INSERT INTO requirements (title, description, quantity, unit, grade, deadline, notes, status, created_by, plant_code)
+  VALUES (@title, @description, @quantity, @unit, @grade, @deadline, @notes, 'Open', @created_by, @plant_code)
 `);
 
 const listRequirements = db.prepare(`
@@ -91,6 +91,7 @@ router.post(
       deadline: new Date(deadline).toISOString(),
       notes: notes || null,
       created_by: req.manager.id,
+      plant_code: req.manager.plant_code || null,
     });
 
     recordAudit({
